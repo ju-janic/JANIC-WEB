@@ -18,7 +18,7 @@ const stats: StatItem[] = [
   { value: 2021, suffix: "", label: "Founded", icon: CalendarDays },
   { value: 18, suffix: "+", label: "Projects", icon: FileText },
   { value: 6, suffix: "", label: "Functions", icon: Layers },
-  { value: 2, suffix: "", label: "Hubs", icon: Building2, href: "https://juictgirls.org/" },
+  { value: 12, suffix: "", label: "Hubs", icon: Building2 },
 ];
 
 function CountUp({ value, suffix }: { value: number; suffix: string }) {
@@ -99,8 +99,8 @@ export function JanicHero({ title, subtitle, image, badgeValue, badgeLabel }: Ja
             <p data-reveal className={styles.description}>{subtitle}</p>
             <div data-reveal className={styles.buttons}>
               <Link href="/projects" className={styles.primary}>Explore Our Projects <ArrowRight size={20} aria-hidden="true" /></Link>
-              <Link href="/join" className={styles.secondary}>Join JANIC</Link>
-              <Link href="/partnerships" className={styles.secondary}>Partner with Us</Link>
+              {/* <Link href="/join" className={styles.secondary}>Join JANIC</Link>
+              <Link href="/partnerships" className={styles.secondary}>Partner with Us</Link> */}
             </div>
           </div>
           <div className={styles.visual}>

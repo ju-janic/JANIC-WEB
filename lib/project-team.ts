@@ -56,3 +56,19 @@ export function enrichProjectTeam(
     };
   });
 }
+
+// Maps project order/slug to the official JIT group designation
+export function getGroupMeta(order: number, title: string): { label: string; type: "group" | "individual" } {
+  const t = title.toLowerCase();
+  if (order === 1 || t.includes("maal hub")) return { label: "GROUP ONE", type: "group" };
+  if (order === 2 || t.includes("luxrest")) return { label: "GROUP TWO", type: "group" };
+  if (order === 3 || t.includes("badbaado")) return { label: "GROUP THREE", type: "group" };
+  if (order === 4 || t.includes("robot car")) return { label: "GROUP FOUR", type: "group" };
+  if (order === 5 || t.includes("student file")) return { label: "GROUP FIVE", type: "group" };
+  if (order === 6 || t.includes("video editing") || t.includes("documentary")) return { label: "GROUP SIX", type: "group" };
+  if (order === 7 || t.includes("smart dust")) return { label: "GROUP SEVEN", type: "group" };
+  if (order === 8 || t.includes("bluetooth") || t.includes("home automation")) return { label: "GROUP EIGHT", type: "group" };
+  if (order === 9 || t.includes("child") || t.includes("activity tracking")) return { label: "GROUP NINE", type: "group" };
+  if (order === 10 || t.includes("janic web")) return { label: "GROUP TEN", type: "group" };
+  return { label: "INDIVIDUAL", type: "individual" };
+}

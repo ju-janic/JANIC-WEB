@@ -27,6 +27,7 @@ import {
 import { ComingSoonCohort } from "./ComingSoonCohort";
 import { ScrollReveal } from "./ScrollReveal";
 import { cn } from "@/lib/utils";
+import { getGroupMeta } from "@/lib/project-team";
 
 export interface ProjectData {
   id: string;
@@ -86,22 +87,6 @@ export interface MemberEntry {
   facebook?: string | null;
   email?: string | null;
   tags?: string | null;
-}
-
-// Maps project order/slug to the official JIT group designation
-function getGroupMeta(order: number, title: string): { label: string; type: "group" | "individual" } {
-  const t = title.toLowerCase();
-  if (order === 1 || t.includes("maal hub")) return { label: "GROUP ONE", type: "group" };
-  if (order === 2 || t.includes("luxrest")) return { label: "GROUP TWO", type: "group" };
-  if (order === 3 || t.includes("badbaado")) return { label: "GROUP THREE", type: "group" };
-  if (order === 4 || t.includes("robot car")) return { label: "GROUP FOUR", type: "group" };
-  if (order === 5 || t.includes("student file")) return { label: "GROUP FIVE", type: "group" };
-  if (order === 6 || t.includes("video editing") || t.includes("documentary")) return { label: "GROUP SIX", type: "group" };
-  if (order === 7 || t.includes("smart dust")) return { label: "GROUP SEVEN", type: "group" };
-  if (order === 8 || t.includes("bluetooth") || t.includes("home automation")) return { label: "GROUP EIGHT", type: "group" };
-  if (order === 9 || t.includes("child") || t.includes("activity tracking")) return { label: "GROUP NINE", type: "group" };
-  if (order === 10 || t.includes("janic web")) return { label: "GROUP TEN", type: "group" };
-  return { label: "INDIVIDUAL", type: "individual" };
 }
 
 function getPageNumbers(currentPage: number, totalPages: number): (number | "...")[] {
@@ -368,30 +353,37 @@ export function ProjectMembersDirectory({
     }
   };
 
-  // Compile full members list from DB records (with fallback to parsing project.teamMembers)
+  // Compile members list strictly from stored database projects (filters out unlinked/orphan members)
   const allMembers = useMemo(() => {
     if (initialMembers && initialMembers.length > 0) {
-      return initialMembers.map((m) => {
+      const linkedMembers: MemberEntry[] = [];
+
+      for (const m of initialMembers) {
         const assignedProj =
           projects.find((p) => p.id === m.projectId) ||
-          (m.project ? projects.find((p) => p.slug === m.project?.slug) : undefined);
+          (m.project ? projects.find((p) => p.slug === m.project?.slug || p.id === m.project?.id) : undefined);
 
-        const projectTitle = assignedProj?.title || m.project?.title || "Innovation Project";
-        const projectSlug = assignedProj?.slug || m.project?.slug || "";
-        const projectCategory = assignedProj?.category || m.project?.category || "Technology";
-        const projectHeroImage = assignedProj?.heroImage || m.project?.heroImage;
-        const projectOrder = assignedProj?.order ?? (m.project?.order ?? 99);
+        // Strictly ignore members not associated with any stored database project
+        if (!assignedProj) {
+          continue;
+        }
+
+        const projectTitle = assignedProj.title;
+        const projectSlug = assignedProj.slug;
+        const projectCategory = assignedProj.category || "Technology";
+        const projectHeroImage = assignedProj.heroImage;
+        const projectOrder = assignedProj.order ?? 99;
 
         const { label, type } = getGroupMeta(projectOrder, projectTitle);
 
-        return {
+        linkedMembers.push({
           id: m.id,
           name: m.name,
           role: m.role || "Team Member",
           department: m.department || "Faculty of Computer Science & IT",
           bio: m.bio,
           avatar: m.avatar,
-          projectId: m.projectId,
+          projectId: m.projectId || assignedProj.id,
           projectTitle,
           projectSlug,
           projectCategory,
@@ -404,11 +396,15 @@ export function ProjectMembersDirectory({
           facebook: m.facebook,
           email: m.email,
           tags: m.tags,
-        } as MemberEntry;
-      });
+        });
+      }
+
+      if (linkedMembers.length > 0) {
+        return linkedMembers;
+      }
     }
 
-    // Fallback: extract from projects.teamMembers
+    // Fallback: extract strictly from stored database projects (projects.teamMembers)
     const list: MemberEntry[] = [];
     projects.forEach((proj) => {
       const { label, type } = getGroupMeta(proj.order, proj.title);
@@ -564,7 +560,7 @@ export function ProjectMembersDirectory({
             Project <span className="text-[#0765ff] dark:text-[#80c2ff]">Members</span>
           </h2>
           <p className="mt-3 max-w-2xl text-base sm:text-lg leading-relaxed text-[#6b7fa6] dark:text-slate-400">
-            Browse student innovators, software engineers, and hardware builders across all 15 projects.
+            Browse student innovators, software engineers, and hardware builders across all {projects.length} innovation projects.
           </p>
         </div>
 
@@ -754,25 +750,29 @@ export function ProjectMembersDirectory({
                 onChange={(e) => setSelectedProjectSlug(e.target.value)}
                 className="appearance-none pl-4 pr-8 py-3 rounded-full bg-white dark:bg-[#0f1e35] border border-white dark:border-[#273b56] text-xs font-semibold text-[#08245C] dark:text-slate-200 shadow-[0_10px_28px_rgb(46_114_187/8%)] focus:outline-none focus:ring-2 focus:ring-[#0075ff]/60 cursor-pointer max-w-[150px] sm:max-w-[170px] truncate"
               >
-                <option value="all">All 15 Projects</option>
-                <optgroup label="Group Projects">
-                  {projects
-                    .filter((p) => getGroupMeta(p.order, p.title).type === "group")
-                    .map((p) => (
-                      <option key={p.slug} value={p.slug}>
-                        {getGroupMeta(p.order, p.title).label}: {p.title}
-                      </option>
-                    ))}
-                </optgroup>
-                <optgroup label="Individual Projects">
-                  {projects
-                    .filter((p) => getGroupMeta(p.order, p.title).type === "individual")
-                    .map((p) => (
-                      <option key={p.slug} value={p.slug}>
-                        INDIVIDUAL: {p.title}
-                      </option>
-                    ))}
-                </optgroup>
+                <option value="all">All {projects.length} Projects</option>
+                {projects.filter((p) => getGroupMeta(p.order, p.title).type === "group").length > 0 && (
+                  <optgroup label="Group Projects">
+                    {projects
+                      .filter((p) => getGroupMeta(p.order, p.title).type === "group")
+                      .map((p) => (
+                        <option key={p.slug} value={p.slug}>
+                          {getGroupMeta(p.order, p.title).label}: {p.title}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+                {projects.filter((p) => getGroupMeta(p.order, p.title).type === "individual").length > 0 && (
+                  <optgroup label="Individual Projects">
+                    {projects
+                      .filter((p) => getGroupMeta(p.order, p.title).type === "individual")
+                      .map((p) => (
+                        <option key={p.slug} value={p.slug}>
+                          INDIVIDUAL: {p.title}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-[#0075ff] dark:text-[#80c2ff] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>

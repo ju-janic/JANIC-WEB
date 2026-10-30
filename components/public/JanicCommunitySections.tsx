@@ -118,7 +118,7 @@ export function JanicCommunitySections({ research, events }: CommunityProps) {
         </div>
       </section>
 
-      <JanicCta />
+      {/* <JanicCta /> */}
     </div>
   );
 }

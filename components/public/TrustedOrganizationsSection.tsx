@@ -73,13 +73,13 @@ function OrganizationCategoryCard({ label, delay, inView, reduced }: CardProps) 
         reduced
           ? {}
           : {
-              transitionProperty: "opacity, transform, border-color, background-color, box-shadow",
-              transitionDuration: "600ms, 600ms, 250ms, 250ms, 250ms",
-              transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1), cubic-bezier(0.16,1,0.3,1), ease, ease, ease",
-              transitionDelay: `${delay}ms, ${delay}ms, 0ms, 0ms, 0ms`,
-              opacity: visible ? 1 : 0,
-              transform: visible ? "translateY(0)" : "translateY(16px)",
-            }
+            transitionProperty: "opacity, transform, border-color, background-color, box-shadow",
+            transitionDuration: "600ms, 600ms, 250ms, 250ms, 250ms",
+            transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1), cubic-bezier(0.16,1,0.3,1), ease, ease, ease",
+            transitionDelay: `${delay}ms, ${delay}ms, 0ms, 0ms, 0ms`,
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0)" : "translateY(16px)",
+          }
       }
     >
       <span className="text-sm font-semibold text-[#0B1F6B] group-hover:text-[#0EA5E9] transition-colors duration-200 leading-snug">
@@ -103,10 +103,10 @@ export function TrustedOrganizationsSection() {
     reduced
       ? {}
       : {
-          transition: `opacity 600ms cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 600ms cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateY(0)" : "translateY(14px)",
-        };
+        transition: `opacity 600ms cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 600ms cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(14px)",
+      };
 
   return (
     <section

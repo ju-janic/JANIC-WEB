@@ -37,105 +37,105 @@ export default async function HomePage() {
       <InnovationPipelineNodes />
 
       {(() => {
-            const fallbackGrid: {
-              title: string;
-              summary: string;
-              category: string;
-              heroImage: string;
-              slug: string;
-              videoUrl?: string | null;
-            }[] = [
-                {
-                  title: "MAAL HUB",
-                  summary: "Integrated financial management system for micro enterprises.",
-                  category: "FINTECH",
-                  heroImage: "/images/maal-hub.jpg",
-                  slug: "maal-hub",
-                  videoUrl: null,
-                },
-                {
-                  title: "Robot Car Cleaner",
-                  summary: "Autonomous cleaning solutions for urban environments.",
-                  category: "ROBOTICS",
-                  heroImage: "/images/robot-car-cleaner.jpg",
-                  slug: "robot-car-cleaner",
-                  videoUrl: null,
-                },
-                {
-                  title: "SAHAL SACCO",
-                  summary: "Automating credit and savings operations.",
-                  category: "SAAS",
-                  heroImage: "/images/sahal-sacco.jpg",
-                  slug: "sahal-sacco",
-                  videoUrl: null,
-                },
-                {
-                  title: "BADBAADO Platform",
-                  summary: "Digital coordination for emergency health services.",
-                  category: "SAFETY TECH",
-                  heroImage: "/images/badbaado-safety.jpg",
-                  slug: "badbaado",
-                  videoUrl: null,
-                },
-              ];
+        const fallbackGrid: {
+          title: string;
+          summary: string;
+          category: string;
+          heroImage: string;
+          slug: string;
+          videoUrl?: string | null;
+        }[] = [
+            {
+              title: "MAAL HUB",
+              summary: "Integrated financial management system for micro enterprises.",
+              category: "FINTECH",
+              heroImage: "/images/maal-hub.jpg",
+              slug: "maal-hub",
+              videoUrl: null,
+            },
+            {
+              title: "Robot Car Cleaner",
+              summary: "Autonomous cleaning solutions for urban environments.",
+              category: "ROBOTICS",
+              heroImage: "/images/robot-car-cleaner.jpg",
+              slug: "robot-car-cleaner",
+              videoUrl: null,
+            },
+            {
+              title: "SAHAL SACCO",
+              summary: "Automating credit and savings operations.",
+              category: "SAAS",
+              heroImage: "/images/sahal-sacco.jpg",
+              slug: "sahal-sacco",
+              videoUrl: null,
+            },
+            {
+              title: "BADBAADO Platform",
+              summary: "Digital coordination for emergency health services.",
+              category: "SAFETY TECH",
+              heroImage: "/images/badbaado-safety.jpg",
+              slug: "badbaado",
+              videoUrl: null,
+            },
+          ];
 
 
-            const allProjects = featuredProjects || [];
+        const allProjects = featuredProjects || [];
 
-            // Match stored DB projects
-            const findProject = (matchSlug: string, matchTitle: string) =>
-              allProjects.find(
-                (p) =>
-                  p.slug.toLowerCase().includes(matchSlug) ||
-                  p.title.toLowerCase().includes(matchTitle)
-              );
+        // Match stored DB projects
+        const findProject = (matchSlug: string, matchTitle: string) =>
+          allProjects.find(
+            (p) =>
+              p.slug.toLowerCase().includes(matchSlug) ||
+              p.title.toLowerCase().includes(matchTitle)
+          );
 
-            const p1 = findProject("maal", "maal") || allProjects[0] || fallbackGrid[0];
-            const p2 = findProject("robot", "robot") || allProjects[1] || fallbackGrid[1];
-            const p3 = findProject("sahal", "sahal") || allProjects[2] || fallbackGrid[2];
-            const p4 =
-              allProjects.find(
-                (p) =>
-                  p.id !== p1?.id &&
-                  p.id !== p2?.id &&
-                  p.id !== p3?.id
-              ) || fallbackGrid[3];
+        const p1 = findProject("maal", "maal") || allProjects[0] || fallbackGrid[0];
+        const p2 = findProject("robot", "robot") || allProjects[1] || fallbackGrid[1];
+        const p3 = findProject("sahal", "sahal") || allProjects[2] || fallbackGrid[2];
+        const p4 =
+          allProjects.find(
+            (p) =>
+              p.id !== p1?.id &&
+              p.id !== p2?.id &&
+              p.id !== p3?.id
+          ) || fallbackGrid[3];
 
-            const gridCards = [
-              {
-                title: p1?.title || fallbackGrid[0].title,
-                summary: p1?.summary || fallbackGrid[0].summary,
-                category: p1?.category || fallbackGrid[0].category,
-                heroImage: p1?.heroImage || fallbackGrid[0].heroImage,
-                videoUrl: p1?.videoUrl || null,
-                slug: p1?.slug || fallbackGrid[0].slug,
-              },
-              {
-                title: p2?.title || fallbackGrid[1].title,
-                summary: p2?.summary || fallbackGrid[1].summary,
-                category: p2?.category || fallbackGrid[1].category,
-                heroImage: p2?.heroImage || fallbackGrid[1].heroImage,
-                videoUrl: p2?.videoUrl || null,
-                slug: p2?.slug || fallbackGrid[1].slug,
-              },
-              {
-                title: p3?.title || fallbackGrid[2].title,
-                summary: p3?.summary || fallbackGrid[2].summary,
-                category: p3?.category || fallbackGrid[2].category,
-                heroImage: p3?.heroImage || fallbackGrid[2].heroImage,
-                videoUrl: p3?.videoUrl || null,
-                slug: p3?.slug || fallbackGrid[2].slug,
-              },
-              {
-                title: p4?.title || fallbackGrid[3].title,
-                summary: p4?.summary || fallbackGrid[3].summary,
-                category: p4?.category || fallbackGrid[3].category,
-                heroImage: p4?.heroImage || fallbackGrid[3].heroImage,
-                videoUrl: p4?.videoUrl || null,
-                slug: p4?.slug || fallbackGrid[3].slug,
-              },
-            ];
-            return <JanicPortfolio cards={gridCards} />;
+        const gridCards = [
+          {
+            title: p1?.title || fallbackGrid[0].title,
+            summary: p1?.summary || fallbackGrid[0].summary,
+            category: p1?.category || fallbackGrid[0].category,
+            heroImage: p1?.heroImage || fallbackGrid[0].heroImage,
+            videoUrl: p1?.videoUrl || null,
+            slug: p1?.slug || fallbackGrid[0].slug,
+          },
+          {
+            title: p2?.title || fallbackGrid[1].title,
+            summary: p2?.summary || fallbackGrid[1].summary,
+            category: p2?.category || fallbackGrid[1].category,
+            heroImage: p2?.heroImage || fallbackGrid[1].heroImage,
+            videoUrl: p2?.videoUrl || null,
+            slug: p2?.slug || fallbackGrid[1].slug,
+          },
+          {
+            title: p3?.title || fallbackGrid[2].title,
+            summary: p3?.summary || fallbackGrid[2].summary,
+            category: p3?.category || fallbackGrid[2].category,
+            heroImage: p3?.heroImage || fallbackGrid[2].heroImage,
+            videoUrl: p3?.videoUrl || null,
+            slug: p3?.slug || fallbackGrid[2].slug,
+          },
+          {
+            title: p4?.title || fallbackGrid[3].title,
+            summary: p4?.summary || fallbackGrid[3].summary,
+            category: p4?.category || fallbackGrid[3].category,
+            heroImage: p4?.heroImage || fallbackGrid[3].heroImage,
+            videoUrl: p4?.videoUrl || null,
+            slug: p4?.slug || fallbackGrid[3].slug,
+          },
+        ];
+        return <JanicPortfolio cards={gridCards} />;
       })()}
 
       <JanicCommunitySections

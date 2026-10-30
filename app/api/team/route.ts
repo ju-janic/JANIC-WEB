@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { TeamRepository } from "@/repositories/team.repository";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 const emptyToNull = (v: unknown) => {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PartnershipService } from "@/services/partnerships/partnership.service";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role, PartnershipStatus } from "@prisma/client";
 
 export async function PUT(
   req: NextRequest,

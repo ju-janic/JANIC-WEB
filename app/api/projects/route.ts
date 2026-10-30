@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ProjectService } from "@/services/projects/project.service";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role, ContentStatus } from "@prisma/client";
+import { ContentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 const memberItemSchema = z.object({
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Service execution
-    const project = await ProjectService.createProject(parsed.data);
+    const project = await ProjectService.createProject(parsed.data as any);
 
     revalidatePath("/projects");
     revalidatePath("/");

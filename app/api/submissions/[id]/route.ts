@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SubmissionService } from "@/services/submissions/submission.service";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role, SubmissionStatus } from "@prisma/client";
+import type { SubmissionStatus } from "@prisma/client";
 
 export async function PUT(
   req: NextRequest,

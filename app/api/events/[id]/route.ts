@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EventService } from "@/services/events/event.service";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role } from "@prisma/client";
 
 export async function PUT(
   req: NextRequest,

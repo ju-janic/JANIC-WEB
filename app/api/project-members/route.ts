@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ProjectMemberRepository } from "@/repositories/project-member.repository";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role } from "@prisma/client";
 
 const projectMemberSchema = z.object({
   name: z.string().min(2, "Name is required"),

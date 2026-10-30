@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TeamRepository } from "@/repositories/team.repository";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function PUT(

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role } from "@prisma/client";
 import fs from "fs";
 import path from "path";
 

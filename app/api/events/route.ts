@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { EventService } from "@/services/events/event.service";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role, ContentStatus } from "@prisma/client";
+import { ContentStatus } from "@prisma/client";
 
 const eventSchema = z.object({
   title: z.string().min(2, "Title is required"),
@@ -50,8 +50,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const eventDate = new Date(parsed.data.eventDate);
-    const endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : undefined;
+    const eventDate = new Date(parsed.data.eventDate as string);
+    const endDate = parsed.data.endDate ? new Date(parsed.data.endDate as string) : undefined;
 
     const item = await EventService.createEvent({
       ...parsed.data,

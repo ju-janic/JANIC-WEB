@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MessageService } from "@/services/messages/message.service";
 import { requireAuth } from "@/lib/permissions/roles";
-import { Role, MessageStatus } from "@prisma/client";
+import type { MessageStatus } from "@prisma/client";
 
 export async function PUT(
   req: NextRequest,

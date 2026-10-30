@@ -21,10 +21,10 @@ export async function GET(
 
     const cookieVisitor = req.cookies.get("janic_visitor_id")?.value;
     const visitorId = user ? `user_${user.id}` : cookieVisitor || "anon_visitor";
-    const commentIds = comments.map((c) => c.id);
+    const commentIds = comments.map((c: { id: string }) => c.id);
     const reactionsMap = await getReactionsForComments(commentIds, visitorId);
 
-    const commentsWithReactions = comments.map((c) => ({
+    const commentsWithReactions = comments.map((c: { id: string; reactions?: any; userReactions?: any }) => ({
       ...c,
       reactions: reactionsMap[c.id]?.reactions || {},
       userReactions: reactionsMap[c.id]?.userReactions || [],

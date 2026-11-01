@@ -1,5 +1,6 @@
 import prisma from "@/lib/db/prisma";
 import { ContentStatus, Prisma } from "@prisma/client";
+import { ProjectCategoryRepository } from "./project-category.repository";
 
 export class ProjectRepository {
   static async findPublished(options?: {
@@ -134,11 +135,6 @@ export class ProjectRepository {
   }
 
   static async getCategories() {
-    const projects = await prisma.project.findMany({
-      where: { status: ContentStatus.PUBLISHED },
-      select: { category: true },
-      distinct: ["category"],
-    });
-    return projects.map((p) => p.category);
+    return ProjectCategoryRepository.getCategoryNames();
   }
 }

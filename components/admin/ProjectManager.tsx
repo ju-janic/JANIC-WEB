@@ -26,11 +26,13 @@ import {
   Link2,
   Calendar,
   Check,
+  Tag,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { ImageUploadChoice } from "./ImageUploadChoice";
 import { FileUploadChoice } from "./FileUploadChoice";
 import { KpiRow } from "./KpiRow";
+import { ProjectCategoryModal } from "./ProjectCategoryModal";
 
 // Brand SVG Icons
 function FacebookIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
@@ -130,10 +132,43 @@ export function ProjectManager({
 
   // Projects State
   const [projects, setProjects] = useState<ProjectItem[]>(initialProjects);
+  const [categoriesList, setCategoriesList] = useState<string[]>(categories);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedYear, setSelectedYear] = useState("all");
+
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      setCategoriesList(categories);
+    }
+  }, [categories]);
+
+  const handleCategoriesUpdated = (
+    newCategoryNames: string[],
+    renamedInfo?: { oldName: string; newName: string }
+  ) => {
+    setCategoriesList(newCategoryNames);
+
+    if (renamedInfo && renamedInfo.oldName !== renamedInfo.newName) {
+      setProjects((prev) =>
+        prev.map((proj) =>
+          proj.category.toLowerCase() === renamedInfo.oldName.toLowerCase()
+            ? { ...proj, category: renamedInfo.newName }
+            : proj
+        )
+      );
+      setProjectDetails((prev) =>
+        prev.category.toLowerCase() === renamedInfo.oldName.toLowerCase()
+          ? { ...prev, category: renamedInfo.newName }
+          : prev
+      );
+      if (selectedCategory.toLowerCase() === renamedInfo.oldName.toLowerCase()) {
+        setSelectedCategory(renamedInfo.newName);
+      }
+    }
+  };
 
   // Secondary Filter Tabs: All | Group Teams | Individual Projects
   const [projectTypeFilter, setProjectTypeFilter] = useState<"all" | "group" | "individual">("all");
@@ -216,7 +251,7 @@ export function ProjectManager({
     setProjectClassification("group");
     setProjectDetails({
       title: "",
-      category: categories[0] || "Web Platform",
+      category: categoriesList[0] || "Web Platform",
       order: projects.length + 1,
       summary: "",
       problem: "",
@@ -784,7 +819,7 @@ export function ProjectManager({
               className="px-3 py-2 bg-muted/50 dark:bg-slate-950/70 border border-border dark:border-slate-800 rounded-xl text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
             >
               <option value="all">All Categories</option>
-              {categories.map((c) => (
+              {categoriesList.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -802,6 +837,20 @@ export function ProjectManager({
               <option value="DRAFT">Draft</option>
               <option value="ARCHIVED">Archived</option>
             </select>
+
+            {/* Manage Categories Action */}
+            <button
+              type="button"
+              onClick={() => setCategoryModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-muted/60 hover:bg-muted dark:bg-slate-950/70 dark:hover:bg-slate-800 text-foreground border border-border dark:border-slate-800 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer"
+              title="Manage Project Categories"
+            >
+              <Layers className="w-4 h-4 text-[#0875D1] dark:text-sky-400" />
+              <span>Categories</span>
+              <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary font-extrabold">
+                {categoriesList.length}
+              </span>
+            </button>
 
             {/* Add Project Primary Action */}
             <button
@@ -1289,15 +1338,30 @@ export function ProjectManager({
                     {/* Category & Order */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Category *
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                            Category *
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setCategoryModalOpen(true)}
+                            className="text-[11px] font-bold text-[#0875D1] dark:text-sky-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Tag className="w-3 h-3" />
+                            <span>Manage Categories</span>
+                          </button>
+                        </div>
                         <select
                           value={projectDetails.category}
                           onChange={(e) => setProjectDetails({ ...projectDetails, category: e.target.value })}
                           className="w-full px-3 py-2.5 bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0875D1] dark:focus:ring-sky-500 cursor-pointer"
                         >
-                          {categories.map((c) => (
+                          {projectDetails.category && !categoriesList.includes(projectDetails.category) && (
+                            <option value={projectDetails.category}>
+                              {projectDetails.category}
+                            </option>
+                          )}
+                          {categoriesList.map((c) => (
                             <option key={c} value={c}>
                               {c}
                             </option>
@@ -1931,6 +1995,13 @@ export function ProjectManager({
           </div>
         </div>
       )}
+
+      {/* Project Category Management Modal */}
+      <ProjectCategoryModal
+        isOpen={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        onCategoriesUpdated={handleCategoriesUpdated}
+      />
     </div>
   );
 }

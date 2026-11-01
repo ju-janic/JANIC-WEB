@@ -58,9 +58,9 @@ export default async function ProjectsPage({
       />
 
       {/* 2. FILTERS & PROJECT GRID */}
-      <section className="py-14 sm:py-20 bg-[#f0f6fe] dark:bg-[#081225] min-h-[600px] overflow-hidden">
+      <section className="py-14 sm:py-20 bg-[#f0f6fe] dark:bg-[#081225] min-h-[600px]">
         <div className="max-w-[1380px] mx-auto px-5 sm:px-8">
-          <ScrollReveal animation="fade-up" duration={800}>
+          <ScrollReveal animation="fade-up" duration={800} className="relative z-30">
             <header className="mb-8 sm:mb-10">
               <p className="flex items-center gap-3 text-[#0075ff] dark:text-[#80c2ff] text-xs font-bold uppercase tracking-[0.08em]">
                 <span className="w-8 h-0.5 bg-current" aria-hidden="true" />
@@ -102,7 +102,7 @@ export default async function ProjectsPage({
               </div>
             </ScrollReveal>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7 relative z-10">
               {projects.map((project, index) => (
                 <ScrollReveal
                   key={project.id}

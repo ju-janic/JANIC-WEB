@@ -100,9 +100,9 @@ export function ProjectsFilterControls({
     currentCategory !== "all" || currentYear !== "all" || !!searchQuery;
 
   return (
-    <div className="space-y-5 mb-10 sm:mb-12">
+    <div className="relative z-30 space-y-5 mb-10 sm:mb-12">
       {/* Top Search & Category Dropdown Bar */}
-      <div className="flex flex-col md:flex-row items-center gap-3">
+      <div className="relative z-30 flex flex-col md:flex-row items-center gap-3">
         {/* Search Bar */}
         <form
           onSubmit={handleSearchSubmit}
@@ -140,7 +140,7 @@ export function ProjectsFilterControls({
         </form>
 
         {/* Custom Category Dropdown */}
-        <div className="relative w-full md:w-72 shrink-0" ref={dropdownRef}>
+        <div className="relative z-40 w-full md:w-72 shrink-0" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setCategoryOpen(!categoryOpen)}

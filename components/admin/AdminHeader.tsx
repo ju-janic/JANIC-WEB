@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Menu, Bell, Calendar, Download, LogOut, UserCircle } from "lucide-react";
+import { Search, Menu, Bell, LogOut, UserCircle } from "lucide-react";
 import { AuthUser } from "@/types/user";
 import { ThemeModeDropdown } from "@/components/theme/ThemeModeDropdown";
 import { Button } from "@/components/ui/button";
@@ -69,17 +69,6 @@ export function AdminHeader({ user, onMenu, notifCount = 0 }: AdminHeaderProps) 
       </div>
 
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" className="gap-2">
-          <Calendar className="w-4 h-4" />
-          <span className="text-sm hidden xl:inline">10 Sep 2026 - 07 Oct 2026</span>
-          <span className="text-sm xl:hidden">Date Range</span>
-        </Button>
-
-        <Button variant="outline" size="sm" className="gap-2">
-          <Download className="w-4 h-4" />
-          <span className="text-sm hidden sm:inline">Export</span>
-        </Button>
-
         <NotificationBell initialCount={notifCount} basePath="/admin" />
 
         <ThemeModeDropdown />

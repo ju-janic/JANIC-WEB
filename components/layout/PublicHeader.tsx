@@ -43,7 +43,7 @@ export const defaultNavStructure: NavItem[] = [
   },
   {
     id: "hubs",
-    name: "Hubs & Programmes",
+    name: "Hubs",
     href: "/hubs",
     subLinks: [
       { name: "All Hubs & Programmes", href: "/hubs" },
@@ -52,7 +52,7 @@ export const defaultNavStructure: NavItem[] = [
   },
   {
     id: "projects",
-    name: "Projects & Innovations",
+    name: "Innovations",
     href: "/projects",
     subLinks: [
       { name: "Featured Projects", href: "/projects" },
@@ -260,7 +260,7 @@ export function PublicHeader({ currentUser }: PublicHeaderProps) {
             username: clerkUser.username || email.split("@")[0],
             avatar: clerkUser.imageUrl,
           }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
   }, [isClerkSignedIn, clerkUser?.id]);

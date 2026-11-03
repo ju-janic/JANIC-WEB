@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventService } from "@/services/events/event.service";
+import { GuestEventConfigService } from "@/lib/services/guest-event-config.service";
 import { SectionHero } from "@/components/layout/SectionHero";
 import { EventVideoPlayer } from "@/components/public/EventVideoPlayer";
 import { EventGallery } from "@/components/public/EventGallery";
@@ -51,6 +52,23 @@ export default async function EventDetailPage({
   }
 
   const isPast = new Date(event.eventDate) < new Date();
+
+  // Lazy bootstrap of the operational guest configuration so the event page can
+  // expose the internal registration flow. Idempotent: the config is unique per
+  // event and admins edit the same row in Phase 2.
+  let guestConfig = null;
+  if (!isPast) {
+    guestConfig = await GuestEventConfigService.getOrCreateForEvent(event).catch((error) => {
+      console.error("[events] could not load guest registration config", error);
+      return null;
+    });
+  }
+  const guestClosedReason = guestConfig
+    ? GuestEventConfigService.getClosedReason(guestConfig)
+    : null;
+  const internalRegistrationOpen = Boolean(
+    guestConfig && guestConfig.isActive && guestClosedReason === null
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-[#070d18] text-slate-900 dark:text-slate-100 overflow-x-clip transition-colors">
@@ -203,7 +221,15 @@ export default async function EventDetailPage({
 
                 {/* Call to action in sidebar */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                  {!isPast && event.registrationUrl ? (
+                  {!isPast && internalRegistrationOpen ? (
+                    <Link
+                      href={`/events/${event.slug}/register`}
+                      className="w-full py-3.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition cursor-pointer"
+                    >
+                      <Users className="w-4 h-4" />
+                      Register for Event
+                    </Link>
+                  ) : !isPast && event.registrationUrl ? (
                     <a
                       href={event.registrationUrl}
                       target="_blank"
@@ -220,6 +246,17 @@ export default async function EventDetailPage({
                       </span>
                       <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">
                         This event concluded successfully. Review the video and photo galleries above.
+                      </p>
+                    </div>
+                  ) : guestConfig && guestClosedReason ? (
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center">
+                      <span className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                        Registration Closed
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {guestClosedReason === "NOT_OPEN_YET"
+                          ? "Online guest registration has not opened yet."
+                          : "Online guest registration for this event has closed."}
                       </p>
                     </div>
                   ) : (

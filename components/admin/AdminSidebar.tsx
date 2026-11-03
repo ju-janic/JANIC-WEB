@@ -24,6 +24,7 @@ import {
   Layers,
   Briefcase,
   FileText,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -53,6 +54,7 @@ const allNavGroups: { label: string; items: NavItem[] }[] = [
       { title: "Training", href: "/admin/training", icon: GraduationCap, capability: "training:read" },
       { title: "Research", href: "/admin/research", icon: FlaskConical, capability: "research:read" },
       { title: "Events", href: "/admin/events", icon: Calendar, capability: "events:read" },
+      { title: "Guest Registrations", href: "/admin/guests", icon: UserCheck, capability: "events:read" },
       { title: "Submissions", href: "/admin/submissions", icon: Lightbulb, capability: "submissions:read" },
     ],
   },

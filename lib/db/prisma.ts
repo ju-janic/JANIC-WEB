@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
-const SCHEMA_VERSION = "2026-10-26-v10-hubs-opportunities-downloads";
+const SCHEMA_VERSION = "2026-11-02-v11-guest-registration";
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
   schemaVersion?: string;
@@ -15,6 +15,8 @@ if (
     !(globalForPrisma.prisma as any).hub ||
     !(globalForPrisma.prisma as any).opportunity ||
     !(globalForPrisma.prisma as any).resourceDocument ||
+    !(globalForPrisma.prisma as any).guestRegistration ||
+    !(globalForPrisma.prisma as any).guestEventConfig ||
     globalForPrisma.schemaVersion !== SCHEMA_VERSION)
 ) {
   try {
@@ -47,7 +49,9 @@ export const prisma =
   globalForPrisma.prisma &&
   (globalForPrisma.prisma as any).hub &&
   (globalForPrisma.prisma as any).opportunity &&
-  (globalForPrisma.prisma as any).resourceDocument
+  (globalForPrisma.prisma as any).resourceDocument &&
+  (globalForPrisma.prisma as any).guestRegistration &&
+  (globalForPrisma.prisma as any).guestEventConfig
     ? globalForPrisma.prisma
     : createClient();
 

@@ -54,6 +54,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  guestRegistrations GuestRegistration[]
+
   @@index([email])
 }
 
@@ -268,6 +270,8 @@ model Event {
   keyHighlights   String?       @db.Text
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  guestEventConfig GuestEventConfig?
 
   @@index([status, eventDate])
   @@index([category])
@@ -661,4 +665,349 @@ model ResourceDocument {
   updatedAt   DateTime @updatedAt
 
   @@index([isActive, order])
+}
+
+/**
+ * ------------------------------------------------------------------
+ */
+/**
+ * Guest Registration & Event Management
+ */
+/**
+ * Phase 1: registration foundation. Invitation, check-in, email,
+ */
+/**
+ * staffing and config-audit tables are created now so later phases
+ */
+/**
+ * can attach to stable relations without destructive migrations.
+ */
+/**
+ * ------------------------------------------------------------------
+ */
+
+enum GuestRegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WAITLISTED
+}
+
+enum GuestApprovalMode {
+  MANUAL
+  AUTOMATIC
+  HYBRID
+}
+
+enum GuestCheckInAccess {
+  ADMIN_ONLY
+  ADMIN_AND_CHECKIN_STAFF
+  ALL_AUTHORIZED_ORGANIZERS
+}
+
+enum GuestStakeholderCategory {
+  GOVERNMENT
+  PRIVATE_SECTOR
+  UNIVERSITY_ACADEMIC
+  NGO_DEVELOPMENT
+  ENTREPRENEUR_STARTUP
+  PARENT_COMMUNITY
+  STUDENT
+  ALUMNI
+  MEDIA
+  VIP_GUEST
+}
+
+enum GuestAttendanceIntent {
+  ATTENDING
+  NOT_ATTENDING
+  NOT_SURE
+}
+
+enum GuestCompanionCount {
+  NONE
+  ONE
+  TWO
+  THREE
+  FOUR
+  FIVE_PLUS
+}
+
+enum GuestReferralSource {
+  UNIVERSITY_INSTITUTION
+  SOCIAL_MEDIA
+  EMAIL
+  FRIEND_COLLEAGUE
+  EVENT_ORGANIZER
+  WEBSITE
+  MEDIA
+  OTHER
+}
+
+enum GuestStaffLevel {
+  CHECKIN_STAFF
+  ORGANIZER
+}
+
+enum GuestInvitationStatus {
+  PENDING
+  ISSUED
+  REVOKED
+}
+
+enum GuestEmailType {
+  REGISTRATION_RECEIVED
+  APPROVAL
+  REJECTION
+  AUTOMATED_APPROVAL
+  RESEND
+}
+
+enum GuestEmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum GuestConfigAction {
+  SAVE
+  RESTORE_DEFAULTS
+  MODE_CHANGE
+  AUTOMATION_TOGGLE
+  STAFF_GRANT
+  STAFF_REVOKE
+  REEVALUATE_PENDING
+}
+
+/// Operational source of truth for everything the admin can configure.
+/// Event information, approval mode, eligibility rules, capacity and
+/// check-in access all live here so no workflow hardcodes them.
+model GuestEventConfig {
+  id                   String             @id @default(cuid())
+  eventId              String?            @unique
+  slug                 String             @unique @db.VarChar(120)
+  eventName            String
+  eventDate            DateTime?
+  startTime            String             @default("09:00") @db.VarChar(5)
+  endTime              String             @default("17:00") @db.VarChar(5)
+  timezone             String             @default("Africa/Mogadishu") @db.VarChar(64)
+  venue                String?
+  location             String?            @db.Text
+  contactEmail         String?
+  contactPhone         String?
+  registrationOpensAt  DateTime?
+  registrationClosesAt DateTime?
+  capacity             Int?
+  waitingListEnabled   Boolean            @default(true)
+  approvalMode         GuestApprovalMode  @default(MANUAL)
+  automationEnabled    Boolean            @default(false)
+  eligibilityRules     Json?
+  rulesVersion         Int                @default(1)
+  checkInAccess        GuestCheckInAccess @default(ADMIN_ONLY)
+  registrationPrefix   String?            @db.VarChar(40)
+  guestIdPrefix        String?            @db.VarChar(40)
+  version              Int                @default(1)
+  isActive             Boolean            @default(true)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  event         Event?              @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  registrations GuestRegistration[]
+  counters      GuestCounter[]
+  staff         GuestEventStaff[]
+  auditLogs     GuestConfigAudit[]
+
+  @@index([isActive])
+  @@index([eventDate])
+}
+
+model GuestRegistration {
+  id              String                  @id @default(cuid())
+  registrationRef String                  @unique @db.VarChar(64)
+  eventConfigId   String
+  userId          String?
+  guestId         String?                 @unique @db.VarChar(40)
+  status          GuestRegistrationStatus @default(PENDING)
+
+  // Personal information (Google Form section 1)
+  fullName        String @db.VarChar(160)
+  organization    String @db.VarChar(200)
+  position        String @db.VarChar(160)
+  email           String @db.VarChar(254)
+  emailNormalized String @db.VarChar(254)
+  phone           String @db.VarChar(40)
+  phoneNormalized String @db.VarChar(32)
+
+  // Stakeholder / attendance (sections 2 & 3)
+  stakeholderCategory GuestStakeholderCategory
+  attendanceIntent    GuestAttendanceIntent
+  companionCount      GuestCompanionCount      @default(NONE)
+  areasOfInterest     Json
+
+  // Accessibility, media consent, referral & comments (sections 5-7)
+  hasAccessibilityNeeds Boolean             @default(false)
+  accessibilityDetails  String?             @db.Text
+  mediaConsent          Boolean
+  referralSource        GuestReferralSource
+  additionalComments    String?             @db.Text
+
+  // Final confirmation (section 8) + privacy consent
+  accuracyConfirmed Boolean @default(true)
+  privacyConsent    Boolean @default(true)
+
+  // Snapshots of the configuration in force when the guest submitted.
+  // Later phases can explain automated decisions without re-reading mutable config.
+  approvalModeAtSubmit  GuestApprovalMode?
+  configVersionAtSubmit Int?
+  appliedRulesVersion   Int?
+  eligibilityVerdict    String?            @db.VarChar(32)
+  eligibilityDetails    Json?
+
+  // Provenance & moderation preparation
+  source          String    @default("web") @db.VarChar(32)
+  ipAddress       String?   @db.VarChar(64)
+  userAgent       String?   @db.VarChar(512)
+  submittedAt     DateTime  @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?   @db.Text
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  eventConfig  GuestEventConfig   @relation(fields: [eventConfigId], references: [id], onDelete: Restrict)
+  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  invitations  GuestInvitation[]
+  checkIns     GuestCheckIn[]
+  emailLogs    GuestEmailLog[]
+  activityLogs GuestActivityLog[]
+
+  @@unique([eventConfigId, emailNormalized])
+  @@unique([eventConfigId, phoneNormalized])
+  @@index([eventConfigId, status, submittedAt])
+  @@index([status, submittedAt])
+  @@index([userId])
+  @@index([emailNormalized])
+  @@index([phoneNormalized])
+}
+
+/// Phase 2/3 preparation: issued digital invitations and their secure QR token.
+model GuestInvitation {
+  id               String                @id @default(cuid())
+  registrationId   String                @unique
+  invitationNumber String?               @unique @db.VarChar(40)
+  qrToken          String                @unique @db.VarChar(128)
+  status           GuestInvitationStatus @default(PENDING)
+  eventSnapshot    Json?
+  issuedAt         DateTime?
+  revokedAt        DateTime?
+  expiresAt        DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  registration GuestRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+/// Phase 2/3 preparation: one successful check-in per registration.
+model GuestCheckIn {
+  id             String   @id @default(cuid())
+  registrationId String   @unique
+  checkedInAt    DateTime @default(now())
+  checkedInById  String?
+  method         String   @default("QR") @db.VarChar(16)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  registration GuestRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([checkedInAt])
+}
+
+/// Phase 2 preparation: delivery audit for every guest email.
+model GuestEmailLog {
+  id             String           @id @default(cuid())
+  registrationId String
+  type           GuestEmailType
+  recipient      String           @db.VarChar(254)
+  status         GuestEmailStatus @default(PENDING)
+  messageId      String?          @db.VarChar(191)
+  error          String?          @db.Text
+  sentAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  registration GuestRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId, createdAt])
+  @@index([status])
+}
+
+/// Immutable operational trail for registration and moderation events.
+model GuestActivityLog {
+  id             String   @id @default(cuid())
+  registrationId String?
+  actorId        String?
+  actorLabel     String?  @db.VarChar(160)
+  action         String   @db.VarChar(64)
+  details        Json?
+  ipAddress      String?  @db.VarChar(64)
+  createdAt      DateTime @default(now())
+
+  registration GuestRegistration? @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId, createdAt])
+  @@index([action, createdAt])
+}
+
+/// Atomic sequence storage (registration references, guest IDs).
+model GuestCounter {
+  id            String   @id @default(cuid())
+  eventConfigId String
+  key           String   @db.VarChar(64)
+  value         Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  eventConfig GuestEventConfig @relation(fields: [eventConfigId], references: [id], onDelete: Cascade)
+
+  @@unique([eventConfigId, key])
+}
+
+/// Phase 2 preparation: who may operate check-in for this event.
+model GuestEventStaff {
+  id            String          @id @default(cuid())
+  eventConfigId String
+  userId        String
+  level         GuestStaffLevel
+  grantedById   String?
+  grantedAt     DateTime        @default(now())
+  revokedById   String?
+  revokedAt     DateTime?
+
+  eventConfig GuestEventConfig @relation(fields: [eventConfigId], references: [id], onDelete: Cascade)
+
+  @@index([eventConfigId, level, revokedAt])
+  @@index([userId])
+}
+
+/// Phase 2 preparation: immutable before/after audit of admin config changes.
+model GuestConfigAudit {
+  id            String            @id @default(cuid())
+  eventConfigId String
+  actorId       String?
+  actorLabel    String?           @db.VarChar(160)
+  action        GuestConfigAction
+  changedKeys   Json?
+  before        Json?
+  after         Json?
+  fromVersion   Int?
+  toVersion     Int?
+  ipAddress     String?           @db.VarChar(64)
+  userAgent     String?           @db.VarChar(512)
+  createdAt     DateTime          @default(now())
+
+  eventConfig GuestEventConfig @relation(fields: [eventConfigId], references: [id], onDelete: Cascade)
+
+  @@index([eventConfigId, createdAt])
+  @@index([actorId, createdAt])
 }

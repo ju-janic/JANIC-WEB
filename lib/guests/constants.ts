@@ -10,6 +10,7 @@ export const GUEST_EVENT_TIMEZONE = "Africa/Mogadishu";
 export const GUEST_DEFAULT_START_TIME = "09:00";
 export const GUEST_DEFAULT_END_TIME = "17:00";
 export const GUEST_REGISTRATION_COUNTER_KEY = "registration";
+export const GUEST_ID_COUNTER_KEY = "guestId";
 
 export const GUEST_FIELD_LIMITS = {
   fullName: 160,

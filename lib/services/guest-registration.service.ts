@@ -1,6 +1,8 @@
 import type { GuestEventConfig } from "@prisma/client";
 import { GuestEventConfigService } from "./guest-event-config.service";
+import { GuestModerationService } from "./guest-moderation.service";
 import {
+  AlreadyRegisteredError,
   DuplicateGuestRegistrationError,
   GuestRegistrationRepository,
 } from "@/lib/repositories/guest-registration.repository";
@@ -20,6 +22,8 @@ export type GuestRegistrationErrorCode =
   | "DUPLICATE_EMAIL"
   | "DUPLICATE_PHONE"
   | "DUPLICATE_UNKNOWN"
+  | "ALREADY_REGISTERED"
+  | "AUTH_REQUIRED"
   | "REGISTRATION_CLOSED"
   | "RATE_LIMITED"
   | "NOT_FOUND"
@@ -105,6 +109,32 @@ export class GuestRegistrationService {
       };
     }
 
+    // Registration is only open to signed-in JANIC accounts.
+    if (!meta.userId) {
+      return {
+        ok: false,
+        code: "AUTH_REQUIRED",
+        message:
+          "Please sign in to your JANIC account before registering for this event.",
+        status: 401,
+      };
+    }
+
+    // Each account may register only once per event.
+    const existing = await GuestRegistrationRepository.findByUserAndEventConfig(
+      meta.userId,
+      context.config.id
+    );
+    if (existing) {
+      return {
+        ok: false,
+        code: "ALREADY_REGISTERED",
+        message:
+          "You have already registered for this event. Each account can register only once. Check your email or contact the JANIC events team if you need to update your details.",
+        status: 409,
+      };
+    }
+
     const parsed = guestRegistrationSchema.safeParse(payload);
     if (!parsed.success) {
       return {
@@ -165,6 +195,13 @@ export class GuestRegistrationService {
         userAgent: meta.userAgent,
       });
 
+      // Outside the transaction: acknowledge the guest and, when the event is
+      // in automatic mode, approve them right away. Failures here must never
+      // break the registration itself.
+      await GuestModerationService.afterRegistration(created.id).catch((error) => {
+        console.error("[guest-registration] post-submit processing failed", error);
+      });
+
       const confirmationToken = await createGuestConfirmationToken({
         registrationId: created.id,
         eventSlug: config.slug,
@@ -190,6 +227,16 @@ export class GuestRegistrationService {
         confirmationToken,
       };
     } catch (error) {
+      if (error instanceof AlreadyRegisteredError) {
+        return {
+          ok: false,
+          code: "ALREADY_REGISTERED",
+          message:
+            "You have already registered for this event. Each account can register only once. Check your email or contact the JANIC events team if you need to update your details.",
+          status: 409,
+        };
+      }
+
       if (error instanceof DuplicateGuestRegistrationError) {
         const emailClash = error.field === "email";
         const phoneClash = error.field === "phone";

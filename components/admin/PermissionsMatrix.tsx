@@ -3,7 +3,13 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save, CheckCircle, Loader2, ShieldCheck, ChevronDown, ChevronRight } from "lucide-react";
-import { MODULES, DEFAULT_ROLE_PERMISSIONS } from "@/lib/permissions/capabilities";
+import {
+  MODULES,
+  DEFAULT_ROLE_PERMISSIONS,
+  PERMISSION_CAPABILITIES,
+  hasLegacyCapabilities,
+  isPermissionCapability,
+} from "@/lib/permissions/capabilities";
 
 interface SettingItem {
   id: string;
@@ -20,10 +26,19 @@ export function PermissionsMatrix({ settings }: { settings: SettingItem[] }) {
     try {
       if (raw) {
         const parsed = JSON.parse(raw);
+        const clean = (caps: unknown) =>
+          Array.isArray(caps) &&
+          !hasLegacyCapabilities(caps) &&
+          caps.every(isPermissionCapability);
         const result: Record<string, string[]> = {};
-        if (parsed.ADMIN) result.ADMIN = parsed.ADMIN;
-        if (parsed.STAFF) result.STAFF = parsed.STAFF;
-        if (Object.keys(result).length > 0) return result;
+        if (clean(parsed.ADMIN)) result.ADMIN = parsed.ADMIN;
+        if (clean(parsed.STAFF)) result.STAFF = parsed.STAFF;
+        if (Object.keys(result).length > 0) {
+          return {
+            ADMIN: result.ADMIN ?? DEFAULT_ROLE_PERMISSIONS.ADMIN,
+            STAFF: result.STAFF ?? DEFAULT_ROLE_PERMISSIONS.STAFF,
+          };
+        }
       }
     } catch {
     }
@@ -75,7 +90,8 @@ export function PermissionsMatrix({ settings }: { settings: SettingItem[] }) {
         <h3 className="text-sm font-bold text-foreground">Role Permissions Matrix</h3>
       </div>
       <p className="text-xs text-muted-foreground">
-        Controls which roles can perform each capability. Enforced on settings and user-management APIs.
+        Controls which roles can perform each capability. Enforced on admin and staff APIs,
+        including QR guest check-in.
       </p>
 
       <div className="overflow-x-auto">
@@ -104,26 +120,29 @@ export function PermissionsMatrix({ settings }: { settings: SettingItem[] }) {
                     </td>
                   ))}
                 </tr>
-                {expanded[mod] && ["create", "read", "update", "delete"].map((crud) => {
-                  const cap = `${mod}:${crud}`;
-                  return (
-                    <tr key={cap} className="border-t border-border/40 bg-slate-50/30">
-                      <td className="py-1.5 pr-4 pl-8 font-mono text-[11px] text-muted-foreground capitalize">
-                        {crud}
-                      </td>
-                      {Object.keys(matrix).filter(r => r !== "ADMIN").map((role) => (
-                        <td key={role} className="text-center py-1.5 px-2">
-                          <input
-                            type="checkbox"
-                            checked={matrix[role].includes(cap)}
-                            onChange={() => toggle(role, cap)}
-                            className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
-                          />
+                {expanded[mod] &&
+                  PERMISSION_CAPABILITIES.filter((capability) =>
+                    capability.startsWith(`${mod}:`)
+                  ).map((cap) => {
+                    const action = cap.slice(cap.indexOf(":") + 1);
+                    return (
+                      <tr key={cap} className="border-t border-border/40 bg-slate-50/30">
+                        <td className="py-1.5 pr-4 pl-8 font-mono text-[11px] text-muted-foreground capitalize">
+                          {action === "checkin" ? "check in" : action}
                         </td>
-                      ))}
-                    </tr>
-                  );
-                })}
+                        {Object.keys(matrix).filter(r => r !== "ADMIN").map((role) => (
+                          <td key={role} className="text-center py-1.5 px-2">
+                            <input
+                              type="checkbox"
+                              checked={matrix[role].includes(cap)}
+                              onChange={() => toggle(role, cap)}
+                              className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
               </React.Fragment>
             ))}
           </tbody>

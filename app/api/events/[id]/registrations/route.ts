@@ -51,15 +51,24 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    // A signed-in JANIC user is linked to the registration so the future
-    // "My Event Registration" profile section can find it. Guests continue
-    // without an account.
+    // Registration requires a signed-in JANIC account. The registration is
+    // linked to the user so the dashboard and "one per user" rule can apply.
     const user = await getCurrentUser().catch(() => null);
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "AUTH_REQUIRED",
+          message: "Please sign in to your JANIC account before registering for this event.",
+        },
+        { status: 401 }
+      );
+    }
 
     const result = await GuestRegistrationService.register(slug, body, {
       ipAddress: clientIp(req),
       userAgent: req.headers.get("user-agent")?.slice(0, 512) ?? null,
-      userId: user?.id ?? null,
+      userId: user.id,
     });
 
     if (!result.ok) {

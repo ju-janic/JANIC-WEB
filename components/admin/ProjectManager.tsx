@@ -27,6 +27,7 @@ import {
   Calendar,
   Check,
   Tag,
+  Mail,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { ImageUploadChoice } from "./ImageUploadChoice";
@@ -82,6 +83,22 @@ export interface MemberFormItem {
   linkedin?: string;
   email?: string;
   facebook?: string;
+  activeFields?: {
+    github: boolean;
+    linkedin: boolean;
+    email: boolean;
+    facebook: boolean;
+  };
+}
+
+type MemberSocialField = "github" | "linkedin" | "email" | "facebook";
+
+/**
+ * Legacy members have no activeFields snapshot, so treat every social field as
+ * enabled until an admin explicitly switches it off.
+ */
+function isMemberFieldActive(member: MemberFormItem, field: MemberSocialField): boolean {
+  return member.activeFields?.[field] ?? true;
 }
 
 export interface ProjectItem {
@@ -278,6 +295,12 @@ export function ProjectManager({
         linkedin: "",
         email: "",
         facebook: "",
+        activeFields: {
+          github: true,
+          linkedin: true,
+          email: true,
+          facebook: true,
+        },
       },
     ]);
     setProjectSettings({
@@ -334,6 +357,12 @@ export function ProjectManager({
           linkedin: m.linkedin || "",
           email: m.email || "",
           facebook: m.facebook || "",
+          activeFields: {
+            github: !!m.github,
+            linkedin: !!m.linkedin,
+            email: !!m.email,
+            facebook: !!m.facebook,
+          },
         }))
       );
     } else if (p.teamMembers) {
@@ -350,6 +379,12 @@ export function ProjectManager({
             linkedin: "",
             email: "",
             facebook: "",
+            activeFields: {
+              github: false,
+              linkedin: false,
+              email: false,
+              facebook: false,
+            },
           };
         })
       );
@@ -364,6 +399,12 @@ export function ProjectManager({
           linkedin: "",
           email: "",
           facebook: "",
+          activeFields: {
+            github: true,
+            linkedin: true,
+            email: true,
+            facebook: true,
+          },
         },
       ]);
     }
@@ -391,6 +432,12 @@ export function ProjectManager({
         linkedin: "",
         email: "",
         facebook: "",
+        activeFields: {
+          github: true,
+          linkedin: true,
+          email: true,
+          facebook: true,
+        },
       },
     ]);
   };
@@ -401,9 +448,25 @@ export function ProjectManager({
   };
 
   // Update member field
-  const handleMemberChange = (index: number, field: keyof MemberFormItem, val: string) => {
+  const handleMemberChange = (index: number, field: keyof MemberFormItem, val: any) => {
     setProjectMembersList((prev) =>
       prev.map((m, i) => (i === index ? { ...m, [field]: val } : m))
+    );
+  };
+
+  const handleMemberActiveToggle = (index: number, field: "github" | "linkedin" | "email" | "facebook") => {
+    setProjectMembersList((prev) =>
+      prev.map((m, i) => {
+        if (i !== index) return m;
+        const currentActive = m.activeFields || { github: true, linkedin: true, email: true, facebook: true };
+        return {
+          ...m,
+          activeFields: {
+            ...currentActive,
+            [field]: !currentActive[field],
+          },
+        };
+      })
     );
   };
 
@@ -525,10 +588,10 @@ export function ProjectManager({
           role: m.role.trim() || "Team Member",
           department: m.department.trim() || "Faculty of Computer Science & IT",
           avatar: m.avatar?.trim() || null,
-          github: m.github?.trim() || null,
-          linkedin: m.linkedin?.trim() || null,
-          email: m.email?.trim() || null,
-          facebook: m.facebook?.trim() || null,
+          github: isMemberFieldActive(m, "github") ? m.github?.trim() || null : null,
+          linkedin: isMemberFieldActive(m, "linkedin") ? m.linkedin?.trim() || null : null,
+          email: isMemberFieldActive(m, "email") ? m.email?.trim() || null : null,
+          facebook: isMemberFieldActive(m, "facebook") ? m.facebook?.trim() || null : null,
         })),
       };
 
@@ -1728,57 +1791,177 @@ export function ProjectManager({
                           </div>
 
                           {/* Social handles */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Social links
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              Turn off any field you do not need
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {/* GitHub */}
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">
-                                GitHub
-                              </label>
-                              <input
-                                type="text"
-                                value={member.github || ""}
-                                onChange={(e) => handleMemberChange(index, "github", e.target.value)}
-                                placeholder="username / url"
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
-                              />
+                              <div className="flex items-center justify-between mb-0.5">
+                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                  <GitHubIcon className="w-3 h-3" />
+                                  GitHub
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMemberActiveToggle(index, "github")}
+                                  aria-label="Toggle GitHub field"
+                                  aria-pressed={isMemberFieldActive(member, "github")}
+                                  title={
+                                    isMemberFieldActive(member, "github")
+                                      ? "Hide GitHub field"
+                                      : "Show GitHub field"
+                                  }
+                                  className={cn(
+                                    "relative inline-flex h-3.5 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                    isMemberFieldActive(member, "github") ? "bg-[#0875D1]" : "bg-slate-200 dark:bg-slate-700"
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                      isMemberFieldActive(member, "github") ? "translate-x-3.5" : "translate-x-0"
+                                    )}
+                                  />
+                                </button>
+                              </div>
+                              {isMemberFieldActive(member, "github") && (
+                                <input
+                                  type="text"
+                                  value={member.github || ""}
+                                  onChange={(e) => handleMemberChange(index, "github", e.target.value)}
+                                  placeholder="username / url"
+                                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
+                                />
+                              )}
                             </div>
 
+                            {/* LinkedIn */}
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">
-                                LinkedIn
-                              </label>
-                              <input
-                                type="text"
-                                value={member.linkedin || ""}
-                                onChange={(e) => handleMemberChange(index, "linkedin", e.target.value)}
-                                placeholder="linkedin url"
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
-                              />
+                              <div className="flex items-center justify-between mb-0.5">
+                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                  <LinkedInIcon className="w-3 h-3" />
+                                  LinkedIn
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMemberActiveToggle(index, "linkedin")}
+                                  aria-label="Toggle LinkedIn field"
+                                  aria-pressed={isMemberFieldActive(member, "linkedin")}
+                                  title={
+                                    isMemberFieldActive(member, "linkedin")
+                                      ? "Hide LinkedIn field"
+                                      : "Show LinkedIn field"
+                                  }
+                                  className={cn(
+                                    "relative inline-flex h-3.5 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                    isMemberFieldActive(member, "linkedin") ? "bg-[#0875D1]" : "bg-slate-200 dark:bg-slate-700"
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                      isMemberFieldActive(member, "linkedin") ? "translate-x-3.5" : "translate-x-0"
+                                    )}
+                                  />
+                                </button>
+                              </div>
+                              {isMemberFieldActive(member, "linkedin") && (
+                                <input
+                                  type="text"
+                                  value={member.linkedin || ""}
+                                  onChange={(e) => handleMemberChange(index, "linkedin", e.target.value)}
+                                  placeholder="linkedin url"
+                                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
+                                />
+                              )}
                             </div>
 
+                            {/* Email */}
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">
-                                Email
-                              </label>
-                              <input
-                                type="email"
-                                value={member.email || ""}
-                                onChange={(e) => handleMemberChange(index, "email", e.target.value)}
-                                placeholder="student@janic.edu"
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
-                              />
+                              <div className="flex items-center justify-between mb-0.5">
+                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                  <Mail className="w-3 h-3" />
+                                  Email
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMemberActiveToggle(index, "email")}
+                                  aria-label="Toggle Email field"
+                                  aria-pressed={isMemberFieldActive(member, "email")}
+                                  title={
+                                    isMemberFieldActive(member, "email")
+                                      ? "Hide Email field"
+                                      : "Show Email field"
+                                  }
+                                  className={cn(
+                                    "relative inline-flex h-3.5 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                    isMemberFieldActive(member, "email") ? "bg-[#0875D1]" : "bg-slate-200 dark:bg-slate-700"
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                      isMemberFieldActive(member, "email") ? "translate-x-3.5" : "translate-x-0"
+                                    )}
+                                  />
+                                </button>
+                              </div>
+                              {isMemberFieldActive(member, "email") && (
+                                <input
+                                  type="email"
+                                  value={member.email || ""}
+                                  onChange={(e) => handleMemberChange(index, "email", e.target.value)}
+                                  placeholder="student@janic.edu"
+                                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
+                                />
+                              )}
                             </div>
 
+                            {/* Facebook */}
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">
-                                Facebook
-                              </label>
-                              <input
-                                type="text"
-                                value={member.facebook || ""}
-                                onChange={(e) => handleMemberChange(index, "facebook", e.target.value)}
-                                placeholder="facebook profile"
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
-                              />
+                              <div className="flex items-center justify-between mb-0.5">
+                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                  <FacebookIcon className="w-3 h-3" />
+                                  Facebook
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMemberActiveToggle(index, "facebook")}
+                                  aria-label="Toggle Facebook field"
+                                  aria-pressed={isMemberFieldActive(member, "facebook")}
+                                  title={
+                                    isMemberFieldActive(member, "facebook")
+                                      ? "Hide Facebook field"
+                                      : "Show Facebook field"
+                                  }
+                                  className={cn(
+                                    "relative inline-flex h-3.5 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                    isMemberFieldActive(member, "facebook") ? "bg-[#0875D1]" : "bg-slate-200 dark:bg-slate-700"
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                      isMemberFieldActive(member, "facebook") ? "translate-x-3.5" : "translate-x-0"
+                                    )}
+                                  />
+                                </button>
+                              </div>
+                              {isMemberFieldActive(member, "facebook") && (
+                                <input
+                                  type="text"
+                                  value={member.facebook || ""}
+                                  onChange={(e) => handleMemberChange(index, "facebook", e.target.value)}
+                                  placeholder="facebook profile"
+                                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
+                                />
+                              )}
                             </div>
                           </div>
                         </div>

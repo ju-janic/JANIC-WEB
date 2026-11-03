@@ -1,9 +1,11 @@
 import React from "react";
 import Link from "next/link";
-import { requireAuth } from "@/lib/permissions/roles";
+import { hasPermission, requireAuth } from "@/lib/permissions/roles";
 import { GuestRegistrationRepository } from "@/lib/repositories/guest-registration.repository";
 import { KpiRow } from "@/components/admin/KpiRow";
 import { GuestStatusBadge } from "@/components/admin/GuestStatusBadge";
+import { GuestModerationActions } from "@/components/admin/GuestModerationActions";
+import { AutomationControl } from "@/components/admin/AutomationControl";
 import {
   ATTENDANCE_LABELS,
   COMPANION_LABELS,
@@ -36,7 +38,8 @@ export default async function AdminGuestRegistrationsPage({
 }: {
   searchParams: Promise<{ q?: string | string[]; status?: string | string[] }>;
 }) {
-  await requireAuth(null, "events:read");
+  const user = await requireAuth(null, "events:read");
+  const canModerate = await hasPermission(user.role, "events:update");
 
   const query = await searchParams;
   const search = single(query.q);
@@ -45,9 +48,10 @@ export default async function AdminGuestRegistrationsPage({
     ? (rawStatus as GuestStatus)
     : undefined;
 
-  const [registrations, stats] = await Promise.all([
+  const [registrations, stats, configs] = await Promise.all([
     GuestRegistrationRepository.listForAdmin({ search: search || undefined, status }),
     GuestRegistrationRepository.statsForAdmin(),
+    GuestRegistrationRepository.listConfigsForAdmin(),
   ]);
 
   return (
@@ -58,8 +62,8 @@ export default async function AdminGuestRegistrationsPage({
             Guest Registrations
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Everyone who registered through the public event page. This view is read-only in
-            Phase 1 — approval actions arrive with Phase 2.
+            Review every registration, approve or reject guests, and issue their digital
+            invitations and QR codes from here.
           </p>
         </div>
         <Link
@@ -83,6 +87,18 @@ export default async function AdminGuestRegistrationsPage({
           },
         ]}
       />
+
+      {canModerate && configs.length > 0 && (
+        <AutomationControl
+          configs={configs.map((config) => ({
+            id: config.id,
+            eventName: config.eventName,
+            slug: config.slug,
+            automationEnabled: config.automationEnabled,
+            approvalMode: config.approvalMode,
+          }))}
+        />
+      )}
 
       {/* Filters */}
       <form
@@ -139,13 +155,14 @@ export default async function AdminGuestRegistrationsPage({
                 <th className="px-4 py-3">Attendance</th>
                 <th className="px-4 py-3">Submitted</th>
                 <th className="px-4 py-3">Status</th>
+                {canModerate && <th className="px-4 py-3">Decision</th>}
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {registrations.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center">
+                  <td colSpan={canModerate ? 8 : 7} className="px-4 py-16 text-center">
                     <UserCheck className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
                     <p className="font-semibold text-foreground">No guest registrations found</p>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -195,6 +212,17 @@ export default async function AdminGuestRegistrationsPage({
                     <td className="px-4 py-3">
                       <GuestStatusBadge status={registration.status} />
                     </td>
+                    {canModerate && (
+                      <td className="px-4 py-3">
+                        <GuestModerationActions
+                          registrationId={registration.id}
+                          status={registration.status}
+                          guestId={registration.guestId}
+                          guestName={registration.fullName}
+                          compact
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/admin/guests/${registration.id}`}
@@ -221,8 +249,9 @@ export default async function AdminGuestRegistrationsPage({
       <div className="flex items-start gap-2.5 rounded-xl border border-border bg-muted/30 p-3.5">
         <Users className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Registration data is stored in real time from the public form. New registrations always
-          start as <strong>Pending</strong>; this Phase 1 view does not modify guest status.
+          New registrations always start as <strong>Pending</strong>. Approving a guest assigns a
+          unique Guest ID, issues a branded digital invitation with a QR code, and emails the guest.
+          In <strong>Automatic</strong> mode this happens the moment they register.
         </p>
       </div>
     </div>

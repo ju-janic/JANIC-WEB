@@ -80,7 +80,7 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
-function siteUrl(p: string) {
+export function siteUrl(p: string) {
   const base =
     process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   return `${base.replace(/\/$/, "")}${p}`;
@@ -845,6 +845,15 @@ export function notifyServiceRequestStatusChange(d: {
     html: rendered.html,
     attachments: rendered.attachments,
   });
+}
+
+/**
+ * Sends a fully-formed email to an explicit recipient.
+ * Used by the guest notification service; the shared wrapper guarantees the
+ * caller never sees a thrown rejection.
+ */
+export async function sendEmail(options: MailOptions): Promise<MailResult> {
+  return send(options);
 }
 
 /** Verifies SMTP connectivity without sending anything. */

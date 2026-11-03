@@ -884,6 +884,8 @@ model GuestRegistration {
 
   @@unique([eventConfigId, emailNormalized])
   @@unique([eventConfigId, phoneNormalized])
+  // One registration per signed-in user per event.
+  @@unique([eventConfigId, userId])
   @@index([eventConfigId, status, submittedAt])
   @@index([status, submittedAt])
   @@index([userId])

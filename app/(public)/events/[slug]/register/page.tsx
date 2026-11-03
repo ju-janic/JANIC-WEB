@@ -1,10 +1,22 @@
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SectionHero } from "@/components/layout/SectionHero";
 import { GuestRegistrationForm } from "@/components/forms/GuestRegistrationForm";
 import { GuestEventConfigService } from "@/lib/services/guest-event-config.service";
-import { CalendarDays, Clock, Mail, MapPin, Phone, ShieldCheck, Ticket } from "lucide-react";
+import { GuestRegistrationRepository } from "@/lib/repositories/guest-registration.repository";
+import { getCurrentUser } from "@/lib/auth/jwt";
+import { GuestStatusBadge } from "@/components/admin/GuestStatusBadge";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Mail,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Ticket,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +36,13 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function GuestRegistrationPage({ params }: PageProps) {
   const { slug } = await params;
+
+  // Guest registration is only available to signed-in JANIC accounts.
+  const user = await getCurrentUser().catch(() => null);
+  if (!user) {
+    redirect(`/login?from=${encodeURIComponent(`/events/${slug}/register`)}`);
+  }
+
   const context = await GuestEventConfigService.getRegistrationContext(slug).catch((error) => {
     console.error("[guest-registration] could not load event context", error);
     return null;
@@ -32,6 +51,26 @@ export default async function GuestRegistrationPage({ params }: PageProps) {
   if (!context) notFound();
 
   const { config, isOpen, closedMessage } = context;
+
+  // One registration per account per event: lock the form once submitted.
+  const existingRegistration = await GuestRegistrationRepository.findByUserAndEventConfig(
+    user.id,
+    config.id
+  ).catch((error) => {
+    console.error("[guest-registration] could not load existing registration", error);
+    return null;
+  });
+
+  const existingSubmittedLabel = existingRegistration
+    ? new Date(existingRegistration.submittedAt).toLocaleString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: config.timezone,
+      })
+    : null;
 
   const eventDateLabel = config.eventDate
     ? new Date(config.eventDate).toLocaleDateString("en-GB", {
@@ -71,7 +110,62 @@ export default async function GuestRegistrationPage({ params }: PageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             {/* FORM COLUMN */}
             <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-5 sm:p-8">
-              {isOpen ? (
+              {existingRegistration ? (
+                <div className="py-6 space-y-6">
+                  <div className="text-center space-y-3">
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+                      <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-[#08245C] dark:text-white">
+                      You are already registered
+                    </h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
+                      Our records show that your account has already submitted a registration for{" "}
+                      {config.eventName}. Each account can register only once, so the form is now
+                      closed for you.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-5 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Registration Reference
+                      </span>
+                      <GuestStatusBadge status={existingRegistration.status} />
+                    </div>
+                    <p className="font-mono text-lg font-black tracking-wide text-[#08245C] dark:text-white break-all">
+                      {existingRegistration.registrationRef}
+                    </p>
+                    {existingSubmittedLabel && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Submitted {existingSubmittedLabel} ({config.timezone})
+                      </p>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-center text-slate-500 dark:text-slate-400 leading-relaxed px-2">
+                    Need to change your details or cancel your registration? Please contact the
+                    JANIC events team and quote your reference number.
+                  </p>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <Link
+                      href={`/events/${config.slug}`}
+                      className="px-5 py-2.5 rounded-xl bg-[#0875D1] hover:bg-[#0668bb] text-white text-xs font-bold transition"
+                    >
+                      Back to Event
+                    </Link>
+                    {config.contactEmail && (
+                      <a
+                        href={`mailto:${config.contactEmail}`}
+                        className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                      >
+                        Contact JANIC
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ) : isOpen ? (
                 <GuestRegistrationForm
                   event={GuestEventConfigService.toPublicEvent(config)}
                 />
@@ -213,7 +307,8 @@ export default async function GuestRegistrationPage({ params }: PageProps) {
               </div>
 
               <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 leading-relaxed px-2">
-                Registration is free and does not require a JANIC account.
+                Registration is free but requires a JANIC account. Each account can register only
+                once for this event.
               </p>
             </aside>
           </div>

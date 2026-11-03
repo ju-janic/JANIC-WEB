@@ -1,7 +1,12 @@
 import { Role } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth/jwt";
 import { SettingService } from "@/services/settings/setting.service";
-import { PERMISSION_CAPABILITIES, DEFAULT_ROLE_PERMISSIONS, PermissionCapability } from "./capabilities";
+import {
+  PERMISSION_CAPABILITIES,
+  DEFAULT_ROLE_PERMISSIONS,
+  PermissionCapability,
+  hasLegacyCapabilities,
+} from "./capabilities";
 
 export { PERMISSION_CAPABILITIES, DEFAULT_ROLE_PERMISSIONS };
 export type { PermissionCapability };
@@ -31,10 +36,16 @@ export async function getRolePermissions(): Promise<Record<Role, string[]>> {
     const raw = await SettingService.getByKey("role_permissions");
     if (raw?.value) {
       const parsed = JSON.parse(raw.value);
-      for (const role of Object.keys(parsed)) {
-        if (!Array.isArray(parsed[role])) return DEFAULT_ROLE_PERMISSIONS;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const entries = Object.entries(parsed);
+        const validShape = entries.every(([, caps]) => Array.isArray(caps));
+        const legacy = entries.some(([, caps]) => hasLegacyCapabilities(caps));
+        if (!validShape) return DEFAULT_ROLE_PERMISSIONS;
+        // Ignore pre-CRUD permission names so new capabilities stay available.
+        if (legacy) return DEFAULT_ROLE_PERMISSIONS;
+        return { ...DEFAULT_ROLE_PERMISSIONS, ...parsed };
       }
-      return { ...DEFAULT_ROLE_PERMISSIONS, ...parsed };
+      return DEFAULT_ROLE_PERMISSIONS;
     }
   } catch {
     // fall through to defaults

@@ -21,6 +21,7 @@ import {
   X,
   Heart,
   Package,
+  ScanLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -49,6 +50,7 @@ const allNavGroups: { label: string; items: NavItem[] }[] = [
       { title: "Training", href: "/staff/training", icon: GraduationCap, capability: "training:read" },
       { title: "Research", href: "/staff/research", icon: FlaskConical, capability: "research:read" },
       { title: "Events", href: "/staff/events", icon: Calendar, capability: "events:read" },
+      { title: "Guest Check-in", href: "/staff/check-in", icon: ScanLine, capability: "events:checkin" },
       { title: "Submissions", href: "/staff/submissions", icon: Lightbulb, capability: "submissions:read" },
     ],
   },

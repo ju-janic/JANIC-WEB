@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LayoutDashboard, LogOut, ChevronDown, UserCircle } from "lucide-react";
+import { Menu, X, LayoutDashboard, LogOut, ChevronDown, UserCircle, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeModeDropdown } from "@/components/theme/ThemeModeDropdown";
 import { useUser, useClerk } from "@clerk/nextjs";
@@ -172,6 +172,15 @@ function UserAvatarMenu({ user, loggingOut, onLogout }: UserAvatarMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+        <DropdownMenuItem
+          onClick={() => router.push("/account/registrations")}
+          className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-slate-800 dark:text-slate-200 hover:bg-gradient-to-r hover:from-[#E9F3FD] hover:to-white dark:hover:from-slate-900 dark:hover:to-slate-800 focus:bg-gradient-to-r focus:from-[#E9F3FD] focus:to-white dark:focus:from-slate-900 dark:focus:to-slate-800 hover:text-[#08245C] dark:hover:text-white transition-colors"
+        >
+          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-[#0875D1]/10 to-[#08245C]/10 dark:from-[#0875D1]/15 dark:to-[#08245C]/15">
+            <Ticket className="h-4 w-4 text-[#0875D1]" />
+          </span>
+          <span className="text-sm font-bold">My Event Registration</span>
+        </DropdownMenuItem>
         {(user.role as string) !== "USER" && (
           <>
             <DropdownMenuItem
@@ -581,6 +590,14 @@ export function PublicHeader({ currentUser }: PublicHeaderProps) {
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
             {isLoggedIn ? (
               <>
+                <Link
+                  href="/account/registrations"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2.5 px-4 rounded-full bg-gradient-to-r from-[#0875D1] to-[#0aa5e8] text-white font-semibold text-xs text-center shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <Ticket className="w-3.5 h-3.5" />
+                  My Event Registration
+                </Link>
                 {(currentUser?.role as string) !== "USER" && (
                   <>
                     <Link

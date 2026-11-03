@@ -1,9 +1,12 @@
 import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAuth } from "@/lib/permissions/roles";
+import { hasPermission, requireAuth } from "@/lib/permissions/roles";
 import { GuestRegistrationRepository } from "@/lib/repositories/guest-registration.repository";
+import { GuestInvitationService } from "@/lib/services/guest-invitation.service";
 import { GuestStatusBadge } from "@/components/admin/GuestStatusBadge";
+import { GuestModerationActions } from "@/components/admin/GuestModerationActions";
+import { InvitationCard } from "@/components/guests/InvitationCard";
 import {
   AREA_OF_INTEREST_LABELS,
   ATTENDANCE_LABELS,
@@ -51,11 +54,15 @@ export default async function AdminGuestRegistrationDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAuth(null, "events:read");
+  const user = await requireAuth(null, "events:read");
   const { id } = await params;
-  const registration = await GuestRegistrationRepository.findByIdForAdmin(id);
+  const [registration, invitation] = await Promise.all([
+    GuestRegistrationRepository.findByIdForAdmin(id),
+    GuestInvitationService.build(id).catch(() => null),
+  ]);
   if (!registration) notFound();
 
+  const canModerate = await hasPermission(user.role, "events:update");
   const config = registration.eventConfig;
   const areas = asStringArray(registration.areasOfInterest);
 
@@ -91,6 +98,24 @@ export default async function AdminGuestRegistrationDetailPage({
           <p className="text-[10px] text-muted-foreground">{config.timezone}</p>
         </div>
       </div>
+
+      {canModerate && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div>
+            <p className="text-xs font-bold text-foreground">Decision</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Approving issues the Guest ID, digital invitation and QR code and emails the guest.
+              Rejecting notifies the applicant and revokes any issued invitation.
+            </p>
+          </div>
+          <GuestModerationActions
+            registrationId={registration.id}
+            status={registration.status}
+            guestId={registration.guestId}
+            guestName={registration.fullName}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left: guest answers */}
@@ -234,7 +259,7 @@ export default async function AdminGuestRegistrationDetailPage({
             <dl className="space-y-2 text-[11px]">
               <Record label="Reference" value={registration.registrationRef} mono />
               <Record label="Status" value={registration.status} />
-              <Record label="Guest ID" value={registration.guestId || "Not issued (Phase 2)"} />
+              <Record label="Guest ID" value={registration.guestId || "Not issued"} />
               <Record label="Source" value={registration.source} />
               <Record label="Approval mode at submit" value={registration.approvalModeAtSubmit || "—"} />
               <Record
@@ -251,29 +276,52 @@ export default async function AdminGuestRegistrationDetailPage({
             </dl>
           </Section>
 
-          <Section title="Invitation, Check-in & Email" icon={Mail}>
-            <dl className="space-y-2 text-[11px]">
-              <Record
-                label="Invitation"
-                value={registration.invitations.length ? registration.invitations[0].status : "Not issued (Phase 2)"}
-              />
-              <Record
-                label="Check-in"
-                value={
-                  registration.checkIns.length
-                    ? formatDateTime(registration.checkIns[0].checkedInAt, config.timezone)
-                    : "Not checked in"
-                }
-              />
-              <Record
-                label="Emails sent"
-                value={`${registration.emailLogs.filter((log) => log.status === "SENT").length} sent / ${registration.emailLogs.length} logged`}
-              />
-            </dl>
-            <p className="mt-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-              Invitation, QR check-in and guest email delivery are Phase 2 features. Their data
-              tables already exist and will attach to this registration record.
-            </p>
+          <Section title="Digital Invitation & QR" icon={Mail}>
+            {invitation?.invitationStatus === "ISSUED" && invitation.qrDataUrl ? (
+              <div className="space-y-4">
+                <InvitationCard invitation={invitation} tone="admin" />
+                <dl className="space-y-2 text-[11px]">
+                  <Record
+                    label="Check-in"
+                    value={
+                      invitation.checkedInAt
+                        ? formatDateTime(new Date(invitation.checkedInAt), config.timezone)
+                        : "Not checked in"
+                    }
+                  />
+                  <Record
+                    label="Emails sent"
+                    value={`${registration.emailLogs.filter((log) => log.status === "SENT").length} sent / ${registration.emailLogs.length} logged`}
+                  />
+                </dl>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <dl className="space-y-2 text-[11px]">
+                  <Record
+                    label="Invitation"
+                    value={invitation?.invitationStatus ?? "Not issued"}
+                  />
+                  <Record
+                    label="Check-in"
+                    value={
+                      registration.checkIns.length
+                        ? formatDateTime(registration.checkIns[0].checkedInAt, config.timezone)
+                        : "Not checked in"
+                    }
+                  />
+                  <Record
+                    label="Emails sent"
+                    value={`${registration.emailLogs.filter((log) => log.status === "SENT").length} sent / ${registration.emailLogs.length} logged`}
+                  />
+                </dl>
+                <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
+                  {registration.status === "REJECTED"
+                    ? "This registration was rejected, so no invitation is active."
+                    : "No invitation yet. Approve this guest to issue the digital invitation and QR code."}
+                </p>
+              </div>
+            )}
           </Section>
         </div>
       </div>

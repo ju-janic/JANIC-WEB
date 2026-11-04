@@ -20,11 +20,11 @@ enum ContentStatus {
   ARCHIVED
 }
 
-enum SubmissionStatus {
-  PENDING
-  UNDER_REVIEW
-  APPROVED
-  REJECTED
+  enum SubmissionStatus {
+    PENDING
+    UNDER_REVIEW
+    APPROVED
+    REJECTED
 }
 
 enum PartnershipStatus {

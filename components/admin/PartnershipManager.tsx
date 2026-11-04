@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Eye, Edit3, Trash2, X, Plus, Building2, Users, GraduationCap, HeartHandshake, Landmark, Cpu, Microscope, LayoutGrid, Table, Briefcase, Calendar, Mail, Phone, AlertCircle, ShieldCheck, Inbox, CheckCircle2, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { FileUploadChoice } from "./FileUploadChoice";
 
 interface Partnership {
   id: string;
@@ -15,6 +16,7 @@ interface Partnership {
   phone?: string | null;
   collaborationArea: string;
   proposalDetails: string;
+  logoUrl?: string | null;
   isApproved: boolean;
   isRejected: boolean;
   adminNotes?: string | null;
@@ -87,6 +89,7 @@ export function PartnershipManager({
     isApproved: false,
     isRejected: false,
     adminNotes: "",
+    logoUrl: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -103,6 +106,7 @@ export function PartnershipManager({
       isApproved: p.isApproved,
       isRejected: p.isRejected,
       adminNotes: p.adminNotes || "",
+      logoUrl: p.logoUrl || "",
     });
   };
 
@@ -829,6 +833,19 @@ export function PartnershipManager({
                     </label>
                   </div>
                 )}
+
+                {/* Partner Logo */}
+                <div>
+                  <FileUploadChoice
+                    label="Partner Logo"
+                    fileType="image"
+                    value={editForm.logoUrl}
+                    onChange={(url) => setEditForm({ ...editForm, logoUrl: url })}
+                    folder="partners"
+                    placeholder="/uploads/... or https://..."
+                    helperText="PNG, JPG, WebP or SVG. Shown next to the partner name on the public partners showcase."
+                  />
+                </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">Staff Notes</label>

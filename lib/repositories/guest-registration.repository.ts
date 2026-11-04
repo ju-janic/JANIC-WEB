@@ -718,6 +718,9 @@ export class GuestRegistrationRepository {
         automationEnabled: true,
         approvalMode: true,
         isActive: true,
+        capacity: true,
+        registrationClosesAt: true,
+        waitingListEnabled: true,
       },
     });
   }
@@ -732,6 +735,68 @@ export class GuestRegistrationRepository {
         automationEnabled: true,
         approvalMode: true,
       },
+    });
+  }
+
+  /**
+   * Closes or reopens the guest registration link for an event config.
+   * Closing sets `isActive = false` (public submissions then receive the
+   * INACTIVE closed reason); reopening clears the registration window so the
+   * event becomes open again. Every change is written to the activity log.
+   */
+  static async updateRegistrationState(args: {
+    eventConfigId: string;
+    isActive: boolean;
+    registrationClosesAt?: Date | null;
+    capacity?: number | null;
+    actorId: string | null;
+    actorLabel: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  }) {
+    return prisma.$transaction(async (tx) => {
+      const before = await tx.guestEventConfig.findUnique({
+        where: { id: args.eventConfigId },
+      });
+      if (!before) return null;
+
+      const updated = await tx.guestEventConfig.update({
+        where: { id: args.eventConfigId },
+        data: {
+          isActive: args.isActive,
+          registrationClosesAt:
+            args.registrationClosesAt !== undefined
+              ? args.registrationClosesAt
+              : before.registrationClosesAt,
+          capacity: args.capacity !== undefined ? args.capacity : before.capacity,
+        },
+      });
+
+      await tx.guestActivityLog.create({
+        data: {
+          registrationId: null,
+          actorId: args.actorId,
+          actorLabel: args.actorLabel,
+          action: args.isActive ? "REGISTRATION_REOPENED" : "REGISTRATION_CLOSED",
+          details: {
+            eventConfigId: args.eventConfigId,
+            eventName: updated.eventName,
+            isActive: updated.isActive,
+            registrationClosesAt: updated.registrationClosesAt,
+            capacity: updated.capacity,
+          },
+          ipAddress: args.ipAddress ?? null,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  /** Number of approved guests currently occupying the event capacity. */
+  static async countApprovedForEvent(eventConfigId: string): Promise<number> {
+    return prisma.guestRegistration.count({
+      where: { eventConfigId, deletedAt: null, status: "APPROVED" },
     });
   }
 }

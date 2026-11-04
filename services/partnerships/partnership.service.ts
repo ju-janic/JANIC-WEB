@@ -32,6 +32,11 @@ export class PartnershipService {
     return PartnershipRepository.findAllPublic();
   }
 
+  /** Approved partnerships for the public partners showcase. */
+  static async getApprovedPublic() {
+    return PartnershipRepository.findApproved();
+  }
+
   static async updateApproval(id: string, isApproved: boolean, isRejected: boolean, adminNotes?: string) {
     return PartnershipRepository.updateApproval(id, isApproved, isRejected, adminNotes);
   }

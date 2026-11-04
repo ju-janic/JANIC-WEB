@@ -1,10 +1,13 @@
 import React from "react";
+import type { PartnershipInquiry } from "@prisma/client";
 import styles from "./CollaborationFramework.module.css";
 import { SectionHero } from "@/components/layout/SectionHero";
 import { ScrollReveal } from "@/components/public/ScrollReveal";
 import { JanicCta } from "@/components/public/JanicCta";
 import { PartnershipForm } from "@/components/forms/PartnershipForm";
-import { Building2, Globe2, Rocket, Award, ShieldCheck, Users, GraduationCap, HeartHandshake, Landmark, Cpu, Microscope } from "lucide-react";
+import { SponsorMarquee } from "@/components/public/SponsorMarquee";
+import { PartnershipService } from "@/services/partnerships/partnership.service";
+import { Building2, Globe2, Rocket, Award, ShieldCheck, Users, GraduationCap, HeartHandshake, Landmark, Cpu, Microscope, Handshake } from "lucide-react";
 
 export const metadata = {
   title: "Partnerships & Collaboration",
@@ -15,6 +18,17 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PartnershipsPage() {
+  const approvedPartners: PartnershipInquiry[] = await PartnershipService.getApprovedPublic().catch(
+    () => []
+  );
+
+  const partnerItems = approvedPartners.map((partner) => ({
+    id: partner.id,
+    organizationName: partner.organizationName,
+    logoUrl: (partner.logoUrl ?? null) as string | null,
+    sponsorshipLevel: null as string | null,
+  }));
+
   const waysToCollaborate = [
     {
       title: "Mentoring & Technical Expertise",
@@ -110,6 +124,39 @@ export default async function PartnershipsPage() {
             </div>
           </div>
         </ScrollReveal>
+      </section>
+
+      {/* 2b. OUR PARTNERS - APPROVED PARTNERSHIPS INFINITE SCROLL */}
+      <section className="py-14 sm:py-16 bg-white dark:bg-slate-950 overflow-hidden">
+        <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollReveal animation="fade-down" duration={850}>
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#0875D1] bg-blue-50 dark:bg-[#0875D1]/15 dark:text-blue-300 px-4 py-1.5 rounded-full">
+                <Handshake className="w-3.5 h-3.5" />
+                Our Partners
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-[#08245C] dark:text-white tracking-tight leading-tight mt-4">
+                Organizations Partnering with JANIC
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base leading-relaxed mt-3 max-w-2xl mx-auto">
+                The partners that collaborate with JANIC on research, student programs,
+                and innovation initiatives.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          {partnerItems.length === 0 ? (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center shadow-sm max-w-xl mx-auto">
+              <Building2 className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-700 mb-3" />
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">No partners yet</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                Be the first to collaborate with JANIC — submit a partnership proposal below.
+              </p>
+            </div>
+          ) : (
+            <SponsorMarquee sponsors={partnerItems} />
+          )}
+        </div>
       </section>
 
       {/* 3. FULL-WIDTH COLLABORATION FRAMEWORK */}

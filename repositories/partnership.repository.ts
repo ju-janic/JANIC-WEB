@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import prisma from "@/lib/db/prisma";
 
 export class PartnershipRepository {
@@ -70,6 +71,10 @@ export class PartnershipRepository {
       fields.push("proposalDetails = ?");
       values.push(data.proposalDetails);
     }
+    if (data.logoUrl !== undefined) {
+      fields.push("logoUrl = ?");
+      values.push(data.logoUrl ?? null);
+    }
     if (data.isApproved !== undefined || data.isRejected !== undefined) {
       const isApp = data.isApproved ?? false;
       const isRej = data.isRejected ?? false;
@@ -107,6 +112,14 @@ export class PartnershipRepository {
 
   static async findAllPublic() {
     return (prisma.partnershipInquiry as any).findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  /** Approved partnerships shown on the public partners showcase. */
+  static async findApproved() {
+    return (prisma.partnershipInquiry as any).findMany({
+      where: { isApproved: true, isRejected: false },
       orderBy: { createdAt: "desc" },
     });
   }

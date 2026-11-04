@@ -6,6 +6,7 @@ import { KpiRow } from "@/components/admin/KpiRow";
 import { GuestStatusBadge } from "@/components/admin/GuestStatusBadge";
 import { GuestModerationActions } from "@/components/admin/GuestModerationActions";
 import { AutomationControl } from "@/components/admin/AutomationControl";
+import { RegistrationControl } from "@/components/admin/RegistrationControl";
 import {
   ATTENDANCE_LABELS,
   COMPANION_LABELS,
@@ -54,6 +55,13 @@ export default async function AdminGuestRegistrationsPage({
     GuestRegistrationRepository.listConfigsForAdmin(),
   ]);
 
+  const registrationConfigs = await Promise.all(
+    configs.map(async (config) => ({
+      ...config,
+      approvedCount: await GuestRegistrationRepository.countApprovedForEvent(config.id),
+    }))
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -98,6 +106,10 @@ export default async function AdminGuestRegistrationsPage({
             approvalMode: config.approvalMode,
           }))}
         />
+      )}
+
+      {canModerate && registrationConfigs.length > 0 && (
+        <RegistrationControl configs={registrationConfigs} />
       )}
 
       {/* Filters */}

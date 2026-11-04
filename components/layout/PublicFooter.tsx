@@ -94,6 +94,9 @@ export async function PublicFooter() {
                 <Link href="/resources/opportunities" className="text-slate-400 hover:text-white transition">Opportunities</Link>
               </li>
               <li>
+                <Link href="/sponsors" className="text-slate-400 hover:text-white transition">Sponsors</Link>
+              </li>
+              <li>
                 <Link href="/resources/downloads" className="text-slate-400 hover:text-white transition">Downloads & Forms</Link>
               </li>
               <li>

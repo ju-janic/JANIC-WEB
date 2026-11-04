@@ -70,6 +70,7 @@ export const defaultNavStructure: NavItem[] = [
       { name: "Research & Publications", href: "/research" },
       { name: "Downloads & Forms", href: "/resources/downloads" },
       { name: "Opportunities", href: "/resources/opportunities" },
+      { name: "Sponsors", href: "/sponsors" },
       { name: "Articles & Posts", href: "/posts" },
       { name: "FAQs", href: "/faq" },
     ],

@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaClient } from "@prisma/client";
 
-const SCHEMA_VERSION = "2026-11-02-v11-guest-registration";
+const SCHEMA_VERSION = "2026-11-04-v12-partner-logo";
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
   schemaVersion?: string;
@@ -17,6 +18,7 @@ if (
     !(globalForPrisma.prisma as any).resourceDocument ||
     !(globalForPrisma.prisma as any).guestRegistration ||
     !(globalForPrisma.prisma as any).guestEventConfig ||
+    !(globalForPrisma.prisma as any).sponsor ||
     globalForPrisma.schemaVersion !== SCHEMA_VERSION)
 ) {
   try {

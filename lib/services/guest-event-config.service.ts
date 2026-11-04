@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type { Event, GuestEventConfig } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { GuestRegistrationRepository } from "@/lib/repositories/guest-registration.repository";
 import { SettingService } from "@/services/settings/setting.service";
 import {
   GUEST_DEFAULT_END_TIME,
@@ -128,6 +129,69 @@ export class GuestEventConfigService {
       closedReason,
       closedMessage: closedReason ? CLOSED_MESSAGES[closedReason] : null,
     };
+  }
+
+  /**
+   * Closes the guest registration link for an event config. Used when the
+   * event reaches capacity or when the events team decides to stop accepting
+   * new registrations.
+   */
+  static async closeRegistration(args: {
+    eventConfigId: string;
+    actor: { id: string; label: string };
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  }): Promise<GuestEventConfig | null> {
+    const config = await GuestRegistrationRepository.updateRegistrationState({
+      eventConfigId: args.eventConfigId,
+      isActive: false,
+      actorId: args.actor.id,
+      actorLabel: args.actor.label,
+      ipAddress: args.ipAddress ?? null,
+      userAgent: args.userAgent ?? null,
+    });
+    if (config) {
+      await GuestRegistrationRepository.logActivity({
+        registrationId: null,
+        actorId: args.actor.id,
+        actorLabel: args.actor.label,
+        action: "REGISTRATION_CLOSED",
+        details: { eventConfigId: args.eventConfigId, eventName: config.eventName, capacity: config.capacity },
+        ipAddress: args.ipAddress ?? null,
+      });
+    }
+    return config;
+  }
+
+  /**
+   * Re-opens a previously closed guest registration link.
+   */
+  static async reopenRegistration(args: {
+    eventConfigId: string;
+    actor: { id: string; label: string };
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  }): Promise<GuestEventConfig | null> {
+    const config = await GuestRegistrationRepository.updateRegistrationState({
+      eventConfigId: args.eventConfigId,
+      isActive: true,
+      registrationClosesAt: null,
+      actorId: args.actor.id,
+      actorLabel: args.actor.label,
+      ipAddress: args.ipAddress ?? null,
+      userAgent: args.userAgent ?? null,
+    });
+    if (config) {
+      await GuestRegistrationRepository.logActivity({
+        registrationId: null,
+        actorId: args.actor.id,
+        actorLabel: args.actor.label,
+        action: "REGISTRATION_REOPENED",
+        details: { eventConfigId: args.eventConfigId, eventName: config.eventName, capacity: config.capacity },
+        ipAddress: args.ipAddress ?? null,
+      });
+    }
+    return config;
   }
 
   static getClosedReason(

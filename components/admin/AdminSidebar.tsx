@@ -26,6 +26,7 @@ import {
   FileText,
   UserCheck,
   ScanLine,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,6 +65,7 @@ const allNavGroups: { label: string; items: NavItem[] }[] = [
     label: "Resources",
     items: [
       { title: "Opportunities", href: "/admin/opportunities", icon: Briefcase },
+      { title: "Sponsors", href: "/admin/sponsors", icon: Award, capability: "partnerships:read" },
       { title: "Downloads & Forms", href: "/admin/downloads", icon: FileText },
     ],
   },

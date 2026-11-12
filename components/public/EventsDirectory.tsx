@@ -48,7 +48,11 @@ interface EventsDirectoryProps {
 
 export function EventsDirectory({ events }: EventsDirectoryProps) {
   // CRITICAL REQUIREMENT: Initial state defaults to "past" (Past Events Hosted by JANIC)
-  const [timeFilter, setTimeFilter] = useState<"past" | "upcoming" | "all">("past");
+  // when past events exist; otherwise "all" so the page is never empty on first render.
+  const [timeFilter, setTimeFilter] = useState<"past" | "upcoming" | "all">(() => {
+    const nowDate = new Date();
+    return events.some((e) => new Date(e.eventDate) < nowDate) ? "past" : "all";
+  });
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedYear, setSelectedYear] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");

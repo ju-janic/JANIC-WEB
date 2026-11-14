@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import jsQR from "jsqr";
 import {
   AlertTriangle,
   Building2,
@@ -63,6 +64,47 @@ function getBarcodeDetector(): BarcodeDetectorConstructor | null {
     (window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector ??
     null
   );
+}
+
+/**
+ * jsQR-based fallback scanner that works on ALL browsers (Safari, Firefox, etc.)
+ * It captures video frames to an off-screen canvas and decodes them with jsQR.
+ */
+class JsQRScanner implements BarcodeDetectorLike {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+
+  constructor() {
+    this.canvas = document.createElement("canvas");
+    this.ctx = this.canvas.getContext("2d", { willReadFrequently: true })!;
+  }
+
+  async detect(source: CanvasImageSource): Promise<DetectedBarcode[]> {
+    const video = source as HTMLVideoElement;
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) return [];
+
+    this.canvas.width = w;
+    this.canvas.height = h;
+    this.ctx.drawImage(video, 0, 0, w, h);
+
+    const imageData = this.ctx.getImageData(0, 0, w, h);
+    const result = jsQR(imageData.data, w, h, { inversionAttempts: "dontInvert" });
+    if (result && result.data) {
+      return [{ rawValue: result.data }];
+    }
+    return [];
+  }
+}
+
+/** Returns a native BarcodeDetector when available, otherwise a jsQR-based fallback */
+function createDetector(): BarcodeDetectorLike {
+  const Native = getBarcodeDetector();
+  if (Native) {
+    return new Native({ formats: ["qr_code"] });
+  }
+  return new JsQRScanner();
 }
 
 const STATE_LABELS: Record<CheckInState, string> = {
@@ -153,13 +195,6 @@ export function GuestCheckInScanner({ recent, operatorName }: GuestCheckInScanne
   async function startCamera() {
     setCameraError(null);
 
-    const Detector = getBarcodeDetector();
-    if (!Detector) {
-      setCameraError(
-        "This browser does not support in-page QR scanning. Use Chrome or Edge, or type the guest ID / reference below."
-      );
-      return;
-    }
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError(
         "Camera access is unavailable here. Type the guest ID or registration reference below."
@@ -183,7 +218,7 @@ export function GuestCheckInScanner({ recent, operatorName }: GuestCheckInScanne
       video.srcObject = stream;
       await video.play();
 
-      const detector = new Detector({ formats: ["qr_code"] });
+      const detector = createDetector();
       detectorRef.current = detector;
       setCameraOn(true);
       void detectLoop(video, stream, detector);

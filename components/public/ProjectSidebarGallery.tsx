@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
   Images,
@@ -32,6 +33,43 @@ export function ProjectSidebarGallery({
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
 
+  const handleClose = useCallback(() => {
+    setActiveModalIndex(null);
+  }, []);
+
+  const handlePrev = useCallback(() => {
+    if (activeModalIndex === null) return;
+    setActiveModalIndex((prev) =>
+      prev! > 0 ? prev! - 1 : gallery.length - 1
+    );
+  }, [activeModalIndex, gallery.length]);
+
+  const handleNext = useCallback(() => {
+    if (activeModalIndex === null) return;
+    setActiveModalIndex((prev) =>
+      prev! < gallery.length - 1 ? prev! + 1 : 0
+    );
+  }, [activeModalIndex, gallery.length]);
+
+  useEffect(() => {
+    if (activeModalIndex === null) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+      if (event.key === "ArrowLeft") handlePrev();
+      if (event.key === "ArrowRight") handleNext();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [activeModalIndex, handleClose, handleNext, handlePrev]);
+
   if (!gallery || gallery.length === 0) {
     return null;
   }
@@ -40,20 +78,6 @@ export function ProjectSidebarGallery({
   const visibleItems = isExpanded ? gallery : gallery.slice(0, initialLimit);
   const hasMore = gallery.length > initialLimit;
   const remainingCount = gallery.length - initialLimit;
-
-  const handlePrev = () => {
-    if (activeModalIndex === null) return;
-    setActiveModalIndex((prev) =>
-      prev! > 0 ? prev! - 1 : gallery.length - 1
-    );
-  };
-
-  const handleNext = () => {
-    if (activeModalIndex === null) return;
-    setActiveModalIndex((prev) =>
-      prev! < gallery.length - 1 ? prev! + 1 : 0
-    );
-  };
 
   return (
     <>
@@ -127,63 +151,75 @@ export function ProjectSidebarGallery({
 
       {/* Lightbox Modal */}
       {activeModalIndex !== null && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          {/* Close button */}
+        typeof document !== "undefined"
+          ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${projectTitle} project gallery`}
+          className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-2xl sm:p-6"
+          onClick={handleClose}
+        >
+          <div
+            className="relative inline-flex max-h-[calc(100vh-24px)] max-w-[calc(100vw-24px)] items-center justify-center sm:max-h-[calc(100vh-48px)] sm:max-w-[calc(100vw-48px)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Image
+              src={gallery[activeModalIndex].imageUrl}
+              alt={gallery[activeModalIndex].alt || `${projectTitle} preview`}
+              width={1600}
+              height={1600}
+              sizes="(max-width: 640px) calc(100vw - 24px), calc(100vw - 48px)"
+              className="h-auto w-auto max-h-[calc(100vh-24px)] max-w-[calc(100vw-24px)] object-contain shadow-2xl sm:max-h-[calc(100vh-48px)] sm:max-w-[calc(100vw-48px)]"
+              priority
+            />
+          </div>
+
           <button
             type="button"
-            onClick={() => setActiveModalIndex(null)}
-            className="absolute top-5 right-5 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-            title="Close"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleClose();
+            }}
+            className="fixed right-3 top-3 z-[110] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-slate-950/80 text-white shadow-xl backdrop-blur-md transition hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-white sm:right-5 sm:top-5"
+            title="Close preview (Esc)"
+            aria-label="Close preview"
           >
-            <X className="w-6 h-6" />
+            <X className="h-6 w-6" />
           </button>
 
-          {/* Navigation Arrows */}
           {gallery.length > 1 && (
             <>
               <button
                 type="button"
-                onClick={handlePrev}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                title="Previous photo"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handlePrev();
+                }}
+                className="fixed left-3 top-1/2 z-[110] inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-xl backdrop-blur-md transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-white sm:left-5"
+                title="Previous photo (Left arrow)"
+                aria-label="Previous photo"
               >
-                <ChevronLeft className="w-6 h-6" />
+                <ChevronLeft className="h-6 w-6" />
               </button>
               <button
                 type="button"
-                onClick={handleNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                title="Next photo"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleNext();
+                }}
+                className="fixed right-3 top-1/2 z-[110] inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-xl backdrop-blur-md transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-white sm:right-5"
+                title="Next photo (Right arrow)"
+                aria-label="Next photo"
               >
-                <ChevronRight className="w-6 h-6" />
+                <ChevronRight className="h-6 w-6" />
               </button>
             </>
           )}
-
-          {/* Modal Content */}
-          <div className="relative max-w-4xl w-full max-h-[85vh] flex flex-col items-center">
-            <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl">
-              <Image
-                src={gallery[activeModalIndex].imageUrl}
-                alt={gallery[activeModalIndex].alt || projectTitle}
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            {/* Caption & Counter */}
-            <div className="mt-4 text-center text-white/90 space-y-1">
-              <p className="text-xs uppercase font-bold tracking-wider text-white/60">
-                Photo {activeModalIndex + 1} of {gallery.length}
-              </p>
-              {gallery[activeModalIndex].caption && (
-                <p className="text-sm font-medium">
-                  {gallery[activeModalIndex].caption}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        </div>,
+        document.body
+          )
+          : null
       )}
     </>
   );

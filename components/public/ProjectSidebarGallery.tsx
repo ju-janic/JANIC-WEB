@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import {
   Images,
   ChevronDown,
@@ -24,14 +25,22 @@ export interface GalleryItem {
 interface ProjectSidebarGalleryProps {
   gallery: GalleryItem[];
   projectTitle: string;
+  studentInnovators?: Array<{
+    id?: string;
+    name: string;
+    role?: string | null;
+    avatar?: string | null;
+  }>;
 }
 
 export function ProjectSidebarGallery({
   gallery,
   projectTitle,
+  studentInnovators = [],
 }: ProjectSidebarGalleryProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
+  const thumbnailsRef = useRef<HTMLDivElement>(null);
 
   const handleClose = useCallback(() => {
     setActiveModalIndex(null);
@@ -69,6 +78,25 @@ export function ProjectSidebarGallery({
       document.body.style.overflow = previousOverflow;
     };
   }, [activeModalIndex, handleClose, handleNext, handlePrev]);
+
+  useEffect(() => {
+    if (activeModalIndex === null || !thumbnailsRef.current) return;
+
+    const container = thumbnailsRef.current;
+    const activeThumbnail = container.querySelector<HTMLElement>(
+      `[data-gallery-index="${activeModalIndex}"]`,
+    );
+
+    if (activeThumbnail) {
+      const containerWidth = container.offsetWidth;
+      const left =
+        activeThumbnail.offsetLeft -
+        containerWidth / 2 +
+        activeThumbnail.offsetWidth / 2;
+
+      container.scrollTo({ left, behavior: "smooth" });
+    }
+  }, [activeModalIndex]);
 
   if (!gallery || gallery.length === 0) {
     return null;
@@ -161,18 +189,113 @@ export function ProjectSidebarGallery({
           onClick={handleClose}
         >
           <div
-            className="relative inline-flex max-h-[calc(100vh-24px)] max-w-[calc(100vw-24px)] items-center justify-center sm:max-h-[calc(100vh-48px)] sm:max-w-[calc(100vw-48px)]"
+            className="flex w-full max-w-3xl flex-col items-center gap-3"
             onClick={(event) => event.stopPropagation()}
           >
-            <Image
-              src={gallery[activeModalIndex].imageUrl}
-              alt={gallery[activeModalIndex].alt || `${projectTitle} preview`}
-              width={1600}
-              height={1600}
-              sizes="(max-width: 640px) calc(100vw - 24px), calc(100vw - 48px)"
-              className="h-auto w-auto max-h-[calc(100vh-24px)] max-w-[calc(100vw-24px)] object-contain shadow-2xl sm:max-h-[calc(100vh-48px)] sm:max-w-[calc(100vw-48px)]"
-              priority
-            />
+            <div className="flex w-full items-center justify-between gap-3 px-1 text-white">
+              <div className="min-w-0 pr-2">
+                <p className="truncate text-lg font-bold sm:text-xl">
+                  {projectTitle}
+                </p>
+                <p className="mt-0.5 text-xs font-medium text-white/65 sm:text-sm">
+                  Project Gallery
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {studentInnovators.length > 0 && (
+                  <div className="flex items-center" aria-label="Student Innovators">
+                    {studentInnovators.slice(0, 4).map((student, index) => {
+                      const initials =
+                        student.name
+                          .split(/\s+/)
+                          .map((part) => part[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase() || "SI";
+
+                      return (
+                        <div
+                          key={student.id || `${student.name}-${index}`}
+                          className="relative -ml-2 first:ml-0 h-9 w-9 overflow-hidden rounded-full border-2 border-slate-950 bg-slate-700 sm:h-10 sm:w-10"
+                          title={`${student.name}${student.role ? ` - ${student.role}` : ""}`}
+                        >
+                          {student.avatar ? (
+                            <Image
+                              src={student.avatar}
+                              alt={student.name}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                              {initials}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {studentInnovators.length > 4 && (
+                      <div className="ml-1 rounded-full border border-white/20 bg-slate-950/70 px-2 py-1 text-[10px] font-bold text-white">
+                        +{studentInnovators.length - 4}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {gallery.length > 1 && (
+                  <p className="shrink-0 rounded-full border border-white/10 bg-slate-950/60 px-2.5 py-1 text-xs font-bold text-white/90 backdrop-blur-md sm:text-sm">
+                    {activeModalIndex + 1} / {gallery.length}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="relative flex h-[62vh] w-full items-center justify-center overflow-hidden sm:h-[68vh]">
+              <Image
+                src={gallery[activeModalIndex].imageUrl}
+                alt={gallery[activeModalIndex].alt || `${projectTitle} preview`}
+                width={1600}
+                height={1600}
+                sizes="(max-width: 640px) calc(100vw - 24px), calc(100vw - 48px)"
+                className="h-full w-full object-contain"
+                priority
+              />
+            </div>
+
+            {gallery.length > 1 && (
+              <div
+                ref={thumbnailsRef}
+                className="max-w-full overflow-x-auto py-1"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                <div className="flex h-16 w-fit gap-0.5 pb-1 sm:h-20">
+                  {gallery.map((item, index) => (
+                    <motion.button
+                      key={item.id || index}
+                      type="button"
+                      data-gallery-index={index}
+                      onClick={() => setActiveModalIndex(index)}
+                      initial={false}
+                      animate={index === activeModalIndex ? "active" : "inactive"}
+                      variants={{
+                        active: { width: 120, marginLeft: 2, marginRight: 2 },
+                        inactive: { width: 35, marginLeft: 0, marginRight: 0 },
+                      }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="relative h-full shrink-0 overflow-hidden rounded-md"
+                      aria-label={`View image ${index + 1}`}
+                    >
+                      <Image
+                        src={item.imageUrl}
+                        alt=""
+                        fill
+                        sizes="120px"
+                        className="object-cover"
+                      />
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <button
@@ -197,7 +320,7 @@ export function ProjectSidebarGallery({
                   handlePrev();
                 }}
                 className="fixed left-3 top-1/2 z-[110] inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-xl backdrop-blur-md transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-white sm:left-5"
-                title="Previous photo (Left arrow)"
+                title="Previous photo"
                 aria-label="Previous photo"
               >
                 <ChevronLeft className="h-6 w-6" />
@@ -209,7 +332,7 @@ export function ProjectSidebarGallery({
                   handleNext();
                 }}
                 className="fixed right-3 top-1/2 z-[110] inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-xl backdrop-blur-md transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-white sm:right-5"
-                title="Next photo (Right arrow)"
+                title="Next photo"
                 aria-label="Next photo"
               >
                 <ChevronRight className="h-6 w-6" />

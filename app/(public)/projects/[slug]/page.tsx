@@ -410,6 +410,7 @@ export default async function ProjectDetailPage({
                   <ProjectSidebarGallery
                     gallery={project.gallery as any}
                     projectTitle={project.title}
+                    studentInnovators={projectTeam}
                   />
                 )}
               </div>

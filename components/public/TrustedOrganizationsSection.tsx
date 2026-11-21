@@ -1,160 +1,92 @@
 ﻿"use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
+import Link from "next/link";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+import {
+  ArrowUpRight,
+  Cpu,
+  GraduationCap,
+  HandHeart,
+  Landmark,
+  Microscope,
+  Rocket,
+  UserRoundCheck,
+  type LucideIcon,
+} from "lucide-react";
+import styles from "./TrustedOrganizationsSection.module.css";
 
-const CATEGORIES = [
-  "SMEs & Startups",
-  "Women-Owned Businesses",
-  "Universities & Education",
-  "NGOs & Development Organizations",
-  "Government Institutions",
-  "Technology Companies",
-  "Researchers & Professionals",
-] as const;
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
-const ROW_ONE = CATEGORIES.slice(0, 4);
-const ROW_TWO = CATEGORIES.slice(4);
-
-function useInView(rootMargin = "0px 0px -60px 0px") {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setInView(true);
-      return;
-    }
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
-          obs.unobserve(el);
-        }
-      },
-      { rootMargin }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [rootMargin]);
-
-  return { ref, inView };
-}
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return reduced;
-}
-
-interface CardProps {
-  label: string;
-  delay: number;
-  inView: boolean;
-  reduced: boolean;
-}
-
-function OrganizationCategoryCard({ label, delay, inView, reduced }: CardProps) {
-  const visible = inView || reduced;
-
-  return (
-    <div
-      className="group flex items-center justify-center text-center px-4 py-5 rounded-xl
-        bg-white border border-[#E5E7EB] cursor-default
-        hover:border-[#0EA5E9] hover:bg-[#F0F9FF] hover:shadow-sm
-        hover:-translate-y-[3px]"
-      style={
-        reduced
-          ? {}
-          : {
-            transitionProperty: "opacity, transform, border-color, background-color, box-shadow",
-            transitionDuration: "600ms, 600ms, 250ms, 250ms, 250ms",
-            transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1), cubic-bezier(0.16,1,0.3,1), ease, ease, ease",
-            transitionDelay: `${delay}ms, ${delay}ms, 0ms, 0ms, 0ms`,
-            opacity: visible ? 1 : 0,
-            transform: visible ? "translateY(0)" : "translateY(16px)",
-          }
-      }
-    >
-      <span className="text-sm font-semibold text-[#0B1F6B] group-hover:text-[#0EA5E9] transition-colors duration-200 leading-snug">
-        {label}
-      </span>
-    </div>
-  );
-}
+const CATEGORIES: { label: string; icon: LucideIcon }[] = [
+  { label: "SMEs & Startups", icon: Rocket },
+  { label: "Women-Owned Businesses", icon: UserRoundCheck },
+  { label: "Universities & Education", icon: GraduationCap },
+  { label: "NGOs & Development Organizations", icon: HandHeart },
+  { label: "Government Institutions", icon: Landmark },
+  { label: "Technology Companies", icon: Cpu },
+  { label: "Researchers & Professionals", icon: Microscope },
+];
 
 export function TrustedOrganizationsSection() {
-  const { ref, inView } = useInView();
-  const reduced = usePrefersReducedMotion();
-  const visible = inView || reduced;
+  const sectionRef = useRef<HTMLElement>(null);
 
-  const headingDelay = 0;
-  const descDelay = reduced ? 0 : 120;
-  const row1Base = 220;
-  const row2Base = row1Base + ROW_ONE.length * 90;
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      // Header: title lines rise out of their masks, description fades in beside it.
+      gsap.timeline({ scrollTrigger: { trigger: "[data-org-header]", start: "top 82%", once: true } })
+        .from("[data-org-eyebrow]", { autoAlpha: 0, y: 10, duration: 0.5, ease: "power2.out" })
+        .from("[data-org-line]", { yPercent: 105, duration: 0.9, ease: "power4.out", stagger: 0.1 }, "-=0.25")
+        .from("[data-org-intro]", { autoAlpha: 0, y: 12, duration: 0.7, ease: "power2.out" }, "-=0.6");
 
-  const fadeStyle = (delay: number): React.CSSProperties =>
-    reduced
-      ? {}
-      : {
-        transition: `opacity 600ms cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 600ms cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(14px)",
-      };
+      // Panel unfolds top-down, then each cell's content settles in reading order.
+      gsap.timeline({ scrollTrigger: { trigger: "[data-org-panel]", start: "top 85%", once: true } })
+        .fromTo("[data-org-panel]",
+          { clipPath: "inset(0% 0% 100% 0% round 20px)" },
+          { clipPath: "inset(0% 0% 0% 0% round 20px)", duration: 1, ease: "power3.inOut", clearProps: "clipPath" })
+        .from("[data-org-cell] > *", {
+          autoAlpha: 0,
+          y: 16,
+          duration: 0.6,
+          ease: "power3.out",
+          stagger: { each: 0.025 },
+        }, 0.35);
+    });
+  }, { scope: sectionRef });
 
   return (
-    <section
-      className="py-16 sm:py-24 bg-white dark:bg-slate-950 border-b border-slate-200/80 dark:border-slate-800/80 overflow-hidden"
-      aria-labelledby="trusted-orgs-heading"
-    >
-      <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={ref} className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
-          <h2
-            id="trusted-orgs-heading"
-            style={fadeStyle(headingDelay)}
-            className="text-3xl sm:text-4xl lg:text-[2.625rem] font-black text-[#0B1F6B] dark:text-white tracking-tight leading-tight mb-4"
-          >
-            Trusted by the Organizations We Work With
-          </h2>
-          <p
-            style={fadeStyle(descDelay)}
-            className="text-sm sm:text-base text-[#64748B] dark:text-slate-400 leading-relaxed"
-          >
-            We Partner With A Wide Range Of Organizations Across Sectors, Helping Them Grow,
-            Innovate, And Reach Their Goals.
+    <section ref={sectionRef} className={styles.section} aria-labelledby="trusted-orgs-heading">
+      <div className={styles.container}>
+        <header data-org-header className={styles.header}>
+          <div>
+            <p data-org-eyebrow className={styles.eyebrow}>Our Partners</p>
+            <h2 id="trusted-orgs-heading" className={styles.title}>
+              <span className={styles.lineMask}><span data-org-line className={styles.line}>Trusted by the organizations</span></span>
+              <span className={styles.lineMask}><span data-org-line className={styles.line}>we <em>work with</em></span></span>
+            </h2>
+          </div>
+          <p data-org-intro className={styles.intro}>
+            We partner with a wide range of organizations across sectors, helping them grow,
+            innovate, and reach their goals.
           </p>
-        </div>
+        </header>
 
-        {/* Row 1 — 4 cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
-          {ROW_ONE.map((label, i) => (
-            <OrganizationCategoryCard
-              key={label}
-              label={label}
-              delay={row1Base + i * 90}
-              inView={inView}
-              reduced={reduced}
-            />
+        <div data-org-panel className={styles.panel}>
+          {CATEGORIES.map(({ label, icon: Icon }, index) => (
+            <div key={label} data-org-cell className={styles.cell}>
+              <span className={styles.index}>{String(index + 1).padStart(2, "0")}</span>
+              <Icon className={styles.icon} size={22} strokeWidth={1.7} aria-hidden="true" />
+              <span className={styles.label}>{label}</span>
+            </div>
           ))}
-        </div>
-
-        {/* Row 2 — 3 cards, centered */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-[calc(75%+0.75rem)] mx-auto">
-          {ROW_TWO.map((label, i) => (
-            <OrganizationCategoryCard
-              key={label}
-              label={label}
-              delay={row2Base + i * 90}
-              inView={inView}
-              reduced={reduced}
-            />
-          ))}
+          <Link href="/partnerships" data-org-cell className={`${styles.cell} ${styles.cta}`}>
+            <span className={styles.index}>Join us</span>
+            <ArrowUpRight className={styles.icon} size={22} strokeWidth={1.8} aria-hidden="true" />
+            <span className={styles.label}>Become a partner</span>
+          </Link>
         </div>
       </div>
     </section>

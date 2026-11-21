@@ -5,6 +5,25 @@ import { Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { signAuthToken, SESSION_COOKIE_NAME } from "@/lib/auth/jwt";
 
+// Behind nginx, req.url points to the internal address (localhost:3002).
+// Build redirect URLs from the real public domain instead.
+function getPublicOrigin(req: NextRequest): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "");
+  if (configured && /^https?:\/\//.test(configured) && !configured.includes("localhost")) {
+    return configured;
+  }
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") || "https";
+  if (host && !host.startsWith("localhost")) {
+    return `${proto}://${host}`;
+  }
+  return req.nextUrl.origin;
+}
+
+function toPublicUrl(path: string, req: NextRequest): URL {
+  return new URL(path, getPublicOrigin(req));
+}
+
 async function syncUser(req: NextRequest, isRedirect: boolean) {
   try {
     const body = req.method === "POST" ? await req.json().catch(() => null) : null;
@@ -20,7 +39,7 @@ async function syncUser(req: NextRequest, isRedirect: boolean) {
       body?.email?.toLowerCase().trim();
 
     if (!email) {
-      if (isRedirect) return NextResponse.redirect(new URL("/", req.url));
+      if (isRedirect) return NextResponse.redirect(toPublicUrl("/", req));
       return NextResponse.json({ success: false, error: "No email found" }, { status: 400 });
     }
 
@@ -80,7 +99,7 @@ async function syncUser(req: NextRequest, isRedirect: boolean) {
     });
 
     if (isRedirect) {
-      const response = NextResponse.redirect(new URL("/", req.url));
+      const response = NextResponse.redirect(toPublicUrl("/", req));
       response.cookies.set({
         name: SESSION_COOKIE_NAME,
         value: token,
@@ -117,7 +136,7 @@ async function syncUser(req: NextRequest, isRedirect: boolean) {
     return response;
   } catch (error: unknown) {
     console.error("[AUTH-SYNC] Error syncing user to database:", error);
-    if (isRedirect) return NextResponse.redirect(new URL("/", req.url));
+    if (isRedirect) return NextResponse.redirect(toPublicUrl("/", req));
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Sync failed" },
       { status: 500 }

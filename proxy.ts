@@ -9,6 +9,25 @@ const SECRET_KEY = new TextEncoder().encode(
 
 const SESSION_COOKIE_NAME = "janic_auth_token";
 
+// Behind nginx, request.url points to the internal address (localhost:3002).
+// Build redirect URLs from the real public domain instead.
+function getPublicOrigin(request: NextRequest): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "");
+  if (configured && /^https?:\/\//.test(configured) && !configured.includes("localhost")) {
+    return configured;
+  }
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const proto = request.headers.get("x-forwarded-proto") || "https";
+  if (host && !host.startsWith("localhost")) {
+    return `${proto}://${host}`;
+  }
+  return request.nextUrl.origin;
+}
+
+function toPublicUrl(path: string, request: NextRequest): URL {
+  return new URL(path, getPublicOrigin(request));
+}
+
 const handler = clerkMiddleware(async (auth, request: NextRequest) => {
   const { pathname } = request.nextUrl;
 
@@ -32,20 +51,20 @@ const handler = clerkMiddleware(async (auth, request: NextRequest) => {
 
     // For all protected routes, must be authenticated
     if (!isAuthenticated) {
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = toPublicUrl("/login", request);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }
 
     // Regular USER (public account) cannot access /admin or /staff portals
     if (userRole === "USER") {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(toPublicUrl("/", request));
     }
 
     // If STAFF tries to access /admin/..., redirect to /staff/...
     if (userRole === "STAFF" && pathname.startsWith("/admin")) {
       const staffPath = pathname.replace(/^\/admin/, "/staff");
-      return NextResponse.redirect(new URL(staffPath, request.url));
+      return NextResponse.redirect(toPublicUrl(staffPath, request));
     }
   }
 
@@ -62,7 +81,7 @@ const handler = clerkMiddleware(async (auth, request: NextRequest) => {
               : payload.role === "ADMIN" || payload.role === "EDITOR"
               ? "/admin/dashboard"
               : "/";
-          return NextResponse.redirect(new URL(dest, request.url));
+          return NextResponse.redirect(toPublicUrl(dest, request));
         }
       } catch {
         // invalid token, proceed to login
